@@ -1,0 +1,42 @@
+# --- Flutter (Frontend) ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+*.lock
+ios/Flutter/Flutter.podspec
+ios/Pods/
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+**/*.keystore
+**/.env
+
+# --- Go (Backend) ---
+/bin/
+/pkg/
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.sum
+# Если используете IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Общие ---
+.DS_Store
+Thumbs.db
+*.log
+.env
