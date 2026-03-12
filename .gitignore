@@ -1,0 +1,25 @@
+﻿# Flutter
+.dart_tool/
+build/
+*.log
+.flutter-plugins-dependencies
+
+# Android/iOS/macOS/Windows
+.android/
+.ios/
+.macos/
+.windows/
+linux/
+
+# IDE
+.idea/
+.vscode/
+
+# Go
+bin/
+*.exe
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
