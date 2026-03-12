@@ -16,12 +16,14 @@ final petDebugProvider = StateNotifierProvider<PetDebugController, PetDebugState
 );
 
 class PetDebugState {
+  final bool enabled;
   final int? structureComplexity;
   final int? damage;
   final int? energy;
   final int? mood;
 
   const PetDebugState({
+    this.enabled = false,
     this.structureComplexity,
     this.damage,
     this.energy,
@@ -29,12 +31,14 @@ class PetDebugState {
   });
 
   PetDebugState copyWith({
+    bool? enabled,
     int? structureComplexity,
     int? damage,
     int? energy,
     int? mood,
   }) {
     return PetDebugState(
+      enabled: enabled ?? this.enabled,
       structureComplexity: structureComplexity ?? this.structureComplexity,
       damage: damage ?? this.damage,
       energy: energy ?? this.energy,
@@ -46,24 +50,28 @@ class PetDebugState {
 class PetDebugController extends StateNotifier<PetDebugState> {
   PetDebugController() : super(const PetDebugState());
 
+  void setEnabled(bool value) {
+    state = state.copyWith(enabled: value);
+  }
+
   void adjustComplexity(int delta) {
     final next = _clamp((state.structureComplexity ?? 0) + delta, 0, 100);
-    state = state.copyWith(structureComplexity: next);
+    state = state.copyWith(structureComplexity: next, enabled: true);
   }
 
   void adjustDamage(int delta) {
     final next = _clamp((state.damage ?? 0) + delta, 0, 100);
-    state = state.copyWith(damage: next);
+    state = state.copyWith(damage: next, enabled: true);
   }
 
   void adjustEnergy(int delta) {
     final next = _clamp((state.energy ?? 0) + delta, 0, 100);
-    state = state.copyWith(energy: next);
+    state = state.copyWith(energy: next, enabled: true);
   }
 
   void adjustMood(int delta) {
     final next = _clamp((state.mood ?? 0) + delta, 0, 100);
-    state = state.copyWith(mood: next);
+    state = state.copyWith(mood: next, enabled: true);
   }
 
   void reset() {
@@ -72,6 +80,10 @@ class PetDebugController extends StateNotifier<PetDebugState> {
 }
 
 PetState applyDebugOverrides(PetState base, PetDebugState debug) {
+  if (!debug.enabled) {
+    return base;
+  }
+
   final complexity = debug.structureComplexity ?? base.structureComplexity;
   final damage = debug.damage ?? base.damage;
   final energy = debug.energy ?? base.energy;
