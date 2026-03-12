@@ -152,6 +152,7 @@ class HomeScreen extends ConsumerWidget {
             onToggle: (id) => ref.read(habitsProvider.notifier).toggleCompleted(id),
             onAdjust: (action) => action(ref.read(petDebugProvider.notifier)),
             onReset: () => ref.read(petDebugProvider.notifier).reset(),
+            onEnable: (value) => ref.read(petDebugProvider.notifier).setEnabled(value),
           );
         },
       ),
@@ -243,6 +244,7 @@ class _PetDebugSheet extends StatelessWidget {
   final void Function(String id) onToggle;
   final void Function(void Function(PetDebugController controller) action) onAdjust;
   final VoidCallback onReset;
+  final void Function(bool value) onEnable;
 
   const _PetDebugSheet({
     required this.habits,
@@ -252,6 +254,7 @@ class _PetDebugSheet extends StatelessWidget {
     required this.onToggle,
     required this.onAdjust,
     required this.onReset,
+    required this.onEnable,
   });
 
   @override
@@ -296,39 +299,62 @@ class _PetDebugSheet extends StatelessWidget {
             _debugRow(context, 'Damage', effectiveState.damage.toString()),
             _debugRow(context, 'Mood', effectiveState.mood.toString()),
             _debugRow(context, 'Completion', '${(ratio * 100).round()}%'),
-            const SizedBox(height: 16),
-            Text(
-              'Manual overrides',
-              style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Enable overrides',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                Switch(
+                  value: debugState.enabled,
+                  onChanged: onEnable,
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            _adjustRow(
-              context,
-              label: 'Complexity',
-              value: (debugState.structureComplexity ?? petState.structureComplexity).toString(),
-              onMinus: () => onAdjust((c) => c.adjustComplexity(-10)),
-              onPlus: () => onAdjust((c) => c.adjustComplexity(10)),
-            ),
-            _adjustRow(
-              context,
-              label: 'Energy',
-              value: (debugState.energy ?? petState.energy).toString(),
-              onMinus: () => onAdjust((c) => c.adjustEnergy(-5)),
-              onPlus: () => onAdjust((c) => c.adjustEnergy(5)),
-            ),
-            _adjustRow(
-              context,
-              label: 'Damage',
-              value: (debugState.damage ?? petState.damage).toString(),
-              onMinus: () => onAdjust((c) => c.adjustDamage(-5)),
-              onPlus: () => onAdjust((c) => c.adjustDamage(5)),
-            ),
-            _adjustRow(
-              context,
-              label: 'Mood',
-              value: (debugState.mood ?? petState.mood).toString(),
-              onMinus: () => onAdjust((c) => c.adjustMood(-5)),
-              onPlus: () => onAdjust((c) => c.adjustMood(5)),
+            Opacity(
+              opacity: debugState.enabled ? 1 : 0.45,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Manual overrides',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  _adjustRow(
+                    context,
+                    label: 'Complexity',
+                    value: (debugState.structureComplexity ?? petState.structureComplexity).toString(),
+                    onMinus: () => onAdjust((c) => c.adjustComplexity(-10)),
+                    onPlus: () => onAdjust((c) => c.adjustComplexity(10)),
+                  ),
+                  _adjustRow(
+                    context,
+                    label: 'Energy',
+                    value: (debugState.energy ?? petState.energy).toString(),
+                    onMinus: () => onAdjust((c) => c.adjustEnergy(-5)),
+                    onPlus: () => onAdjust((c) => c.adjustEnergy(5)),
+                  ),
+                  _adjustRow(
+                    context,
+                    label: 'Damage',
+                    value: (debugState.damage ?? petState.damage).toString(),
+                    onMinus: () => onAdjust((c) => c.adjustDamage(-5)),
+                    onPlus: () => onAdjust((c) => c.adjustDamage(5)),
+                  ),
+                  _adjustRow(
+                    context,
+                    label: 'Mood',
+                    value: (debugState.mood ?? petState.mood).toString(),
+                    onMinus: () => onAdjust((c) => c.adjustMood(-5)),
+                    onPlus: () => onAdjust((c) => c.adjustMood(5)),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Text(
