@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/storage/app_database.dart';
@@ -7,6 +7,18 @@ import '../../../core/storage/memory_store.dart';
 import '../domain/streak.dart';
 
 class StreaksLocalDataSource {
+  Future<Streak?> getStreak(String habitId) async {
+    if (kIsWeb) {
+      return MemoryStore.instance.streaks[habitId];
+    }
+
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query('streaks',
+        where: 'habit_id = ?', whereArgs: [habitId], limit: 1);
+    if (rows.isEmpty) return null;
+    return _mapRow(rows.first);
+  }
+
   Future<List<Streak>> listStreaks() async {
     if (kIsWeb) {
       final items = MemoryStore.instance.streaks.values.toList();
@@ -58,3 +70,4 @@ class StreaksLocalDataSource {
     );
   }
 }
+
