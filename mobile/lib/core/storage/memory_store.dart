@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 import '../../features/habits/domain/habit.dart';
+import '../../features/notifications/domain/notification_plan.dart';
 import '../../features/pet/domain/pet_state.dart';
 import '../../features/stats/domain/streak.dart';
 import '../../features/stats/domain/user_stats.dart';
@@ -15,6 +16,7 @@ class MemoryStore {
   final Map<String, HabitEntity> habits = {};
   final List<HabitLogEntry> habitLogs = [];
   final Map<String, Streak> streaks = {};
+  final List<NotificationPlan> notifications = [];
   UserStats? userStats;
   PetState? petState;
 
@@ -27,6 +29,7 @@ class MemoryStore {
     habits.clear();
     habitLogs.clear();
     streaks.clear();
+    notifications.clear();
     userStats = null;
     petState = null;
     syncQueue.clear();

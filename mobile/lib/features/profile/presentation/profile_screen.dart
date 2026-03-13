@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/sync/sync_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../habits/presentation/habits_controller.dart';
+import '../../notifications/presentation/notifications_controller.dart';
 import '../../stats/presentation/stats_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -15,6 +16,7 @@ class ProfileScreen extends ConsumerWidget {
     final streaksAsync = ref.watch(streaksProvider);
     final syncState = ref.watch(syncControllerProvider);
     final habits = ref.watch(habitsProvider);
+    final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -132,6 +134,26 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('Notifications',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  if (notifications.isEmpty)
+                    Text('No reminders scheduled.',
+                        style: Theme.of(context).textTheme.bodySmall)
+                  else
+                    Text(
+                      '${notifications.first.message}\n${notifications.first.scheduledAt.toLocal()}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _card(
+              context,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text('Streak focus',
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -229,5 +251,3 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 }
-
-
