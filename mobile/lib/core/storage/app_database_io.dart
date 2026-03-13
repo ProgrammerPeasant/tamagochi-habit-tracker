@@ -1,4 +1,4 @@
-import 'package:path/path.dart' as p;
+﻿import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -19,7 +19,11 @@ class AppDatabase {
     final path = p.join(directory.path, 'origamit.db');
     return databaseFactoryFfi.openDatabase(
       path,
-      options: OpenDatabaseOptions(version: 1, onCreate: _onCreate),
+      options: OpenDatabaseOptions(
+        version: 2,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      ),
     );
   }
 
@@ -99,6 +103,27 @@ class AppDatabase {
         device_id TEXT NOT NULL,
         cursor TEXT NOT NULL,
         updated_at TEXT NOT NULL
+      );
+    ''');
+
+    await _createNotificationsTable(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createNotificationsTable(db);
+    }
+  }
+
+  Future<void> _createNotificationsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        habit_id TEXT,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL,
+        created_at TEXT NOT NULL
       );
     ''');
   }
