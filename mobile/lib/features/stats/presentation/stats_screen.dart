@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../habits/domain/habit.dart';
+import '../../habits/presentation/habits_controller.dart';
 import 'stats_controller.dart';
 
 class StatsScreen extends ConsumerWidget {
@@ -11,6 +13,7 @@ class StatsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(userStatsProvider);
     final streaksAsync = ref.watch(streaksProvider);
+    final habits = ref.watch(habitsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Stats')),
@@ -89,7 +92,7 @@ class StatsScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Habit ${streak.habitId}',
+                                _habitLabel(habits, streak.habitId),
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                               Text(
@@ -111,6 +114,15 @@ class StatsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _habitLabel(List<HabitEntity> habits, String id) {
+    for (final item in habits) {
+      if (item.id == id) {
+        return item.title;
+      }
+    }
+    return 'Habit $id';
   }
 
   Widget _statTile(BuildContext context,
@@ -146,3 +158,4 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 }
+

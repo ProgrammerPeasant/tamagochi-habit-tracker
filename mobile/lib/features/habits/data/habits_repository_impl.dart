@@ -1,3 +1,5 @@
+﻿import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/db_time.dart';
@@ -6,6 +8,8 @@ import '../../../core/sync/sync_state.dart';
 import '../../pet/data/pet_local_data_source.dart';
 import '../../stats/data/streaks_local_data_source.dart';
 import '../../stats/data/user_stats_local_data_source.dart';
+import '../../stats/domain/streak.dart';
+import '../../stats/domain/user_stats.dart';
 import '../domain/habit.dart';
 import 'habits_local_data_source.dart';
 import 'habits_remote_data_source.dart';
@@ -86,6 +90,8 @@ class HabitsRepositoryImpl implements HabitsRepository {
     }
 
     final now = DateTime.now().toUtc();
+    await _refreshLocalDerived(id, result.updatedHabit, now);
+
     try {
       final completion = await _remote.completeHabit(id, now);
       await _streaksLocal.upsertStreaks([completion.streak]);
@@ -113,6 +119,35 @@ class HabitsRepositoryImpl implements HabitsRepository {
     }
   }
 
+  Future<void> _refreshLocalDerived(
+      String habitId, HabitEntity updatedHabit, DateTime now) async {
+    final existingStreak = await _streaksLocal.getStreak(habitId);
+    final bestStreak =
+        max(existingStreak?.bestStreak ?? 0, updatedHabit.currentStreak);
+    final streak = Streak(
+      habitId: habitId,
+      currentStreak: updatedHabit.currentStreak,
+      bestStreak: bestStreak,
+      lastCompleted: updatedHabit.lastCompletedAt,
+      updatedAt: now,
+    );
+    await _streaksLocal.upsertStreaks([streak]);
+
+    final habits = await _local.fetchHabits();
+    final totalCompleted = await _statsLocal.countTotalCompleted();
+    final activeDays = await _statsLocal.countActiveDays();
+    final completionRate = habits.isEmpty
+        ? 0.0
+        : habits.where((habit) => habit.completedToday).length / habits.length;
+    final stats = UserStats(
+      totalCompleted: totalCompleted,
+      completionRate: completionRate,
+      activeDays: activeDays,
+      updatedAt: now,
+    );
+    await _statsLocal.upsertStats(stats);
+  }
+
   Future<void> _enqueueHabit(HabitEntity habit, String op) async {
     final state = await _syncState.getState();
     await _queue.enqueue(
@@ -138,3 +173,4 @@ class HabitsRepositoryImpl implements HabitsRepository {
     );
   }
 }
+

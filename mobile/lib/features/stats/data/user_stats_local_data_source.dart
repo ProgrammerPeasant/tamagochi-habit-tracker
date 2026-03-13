@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/storage/app_database.dart';
@@ -47,4 +47,30 @@ class UserStatsLocalDataSource {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  Future<int> countTotalCompleted() async {
+    if (kIsWeb) {
+      return MemoryStore.instance.habitLogs.length;
+    }
+
+    final db = await AppDatabase.instance.database;
+    final rows = await db.rawQuery('SELECT COUNT(*) as count FROM habit_logs');
+    return Sqflite.firstIntValue(rows) ?? 0;
+  }
+
+  Future<int> countActiveDays() async {
+    if (kIsWeb) {
+      final dates = <String>{};
+      for (final log in MemoryStore.instance.habitLogs) {
+        dates.add(log.date.toIso8601String().substring(0, 10));
+      }
+      return dates.length;
+    }
+
+    final db = await AppDatabase.instance.database;
+    final rows = await db.rawQuery(
+        'SELECT COUNT(DISTINCT substr(date, 1, 10)) as count FROM habit_logs');
+    return Sqflite.firstIntValue(rows) ?? 0;
+  }
 }
+

@@ -1,16 +1,20 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../habits/presentation/habits_controller.dart';
 import '../data/streaks_local_data_source.dart';
 import '../data/user_stats_local_data_source.dart';
 import '../domain/streak.dart';
 import '../domain/user_stats.dart';
 
 final userStatsProvider = FutureProvider<UserStats?>((ref) async {
+  ref.watch(habitsProvider);
   final local = UserStatsLocalDataSource();
   return local.getStats();
 });
 
 final streaksProvider = FutureProvider<List<Streak>>((ref) async {
+  ref.watch(habitsProvider);
   final local = StreaksLocalDataSource();
   return local.listStreaks();
 });
+

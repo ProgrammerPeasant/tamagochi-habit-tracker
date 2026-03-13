@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -118,7 +118,9 @@ PetState _computePetState(List<HabitEntity> habits) {
       habits.fold<int>(0, (sum, habit) => sum + habit.currentStreak);
   final completionRatio = completed / max(total, 1);
 
-  final complexity = _clamp(10 + streakSum * 3 + completed * 10, 0, 100);
+  final streakInfluence = (sqrt(streakSum.toDouble()) * 6).round();
+  final complexity =
+      _clamp(8 + completed * 8 + streakInfluence, 0, 100);
   final energy =
       _clamp((completionRatio * 100).round() + (streakSum ~/ 2), 0, 100);
   final damage =
@@ -144,3 +146,5 @@ int _clamp(int value, int min, int max) {
   }
   return value;
 }
+
+
