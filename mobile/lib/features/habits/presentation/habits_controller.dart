@@ -1,35 +1,57 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/sync/sync_controller.dart';
+import '../data/habits_repository.dart';
+import '../data/habits_repository_impl.dart';
 import '../domain/habit.dart';
 
-final habitsProvider = StateNotifierProvider<HabitsController, List<HabitEntity>>(
-  (ref) => HabitsController(),
+final habitsProvider =
+    StateNotifierProvider<HabitsController, List<HabitEntity>>(
+  (ref) => HabitsController(ref),
 );
 
 class HabitsController extends StateNotifier<List<HabitEntity>> {
-  HabitsController() : super(_seed());
-
-  void toggleCompleted(String id) {
-    state = [
-      for (final habit in state)
-        if (habit.id == id)
-          habit.copyWith(
-            completedToday: !habit.completedToday,
-            currentStreak: habit.completedToday
-                ? (habit.currentStreak > 0 ? habit.currentStreak - 1 : 0)
-                : habit.currentStreak + 1,
-          )
-        else
-          habit,
-    ];
+  HabitsController(this._ref) : super(const []) {
+    _load();
   }
 
-  void addHabit(HabitEntity habit) {
-    state = [...state, habit];
+  final Ref _ref;
+
+  HabitsRepository get _repo => _ref.read(habitsRepositoryProvider);
+
+  Future<void> _load() async {
+    final items = await _repo.listHabits();
+    if (items.isEmpty) {
+      await _seed();
+      state = await _repo.listHabits();
+      return;
+    }
+    state = items;
   }
 
-  static List<HabitEntity> _seed() {
-    return const [
+  Future<void> toggleCompleted(String id) async {
+    await _repo.toggleCompleted(id);
+    state = await _repo.listHabits();
+    unawaited(_ref.read(syncControllerProvider.notifier).sync());
+  }
+
+  Future<void> addHabit(HabitEntity habit) async {
+    await _repo.upsertHabit(habit);
+    state = await _repo.listHabits();
+    unawaited(_ref.read(syncControllerProvider.notifier).sync());
+  }
+
+  Future<void> deleteHabit(String id) async {
+    await _repo.deleteHabit(id);
+    state = await _repo.listHabits();
+    unawaited(_ref.read(syncControllerProvider.notifier).sync());
+  }
+
+  Future<void> _seed() async {
+    final now = DateTime.now().toUtc();
+    final seed = [
       HabitEntity(
         id: 'hab_1',
         title: 'Morning reading',
@@ -37,6 +59,8 @@ class HabitsController extends StateNotifier<List<HabitEntity>> {
         frequency: HabitFrequency.daily,
         currentStreak: 6,
         completedToday: true,
+        createdAt: now,
+        updatedAt: now,
       ),
       HabitEntity(
         id: 'hab_2',
@@ -45,6 +69,8 @@ class HabitsController extends StateNotifier<List<HabitEntity>> {
         frequency: HabitFrequency.daily,
         currentStreak: 3,
         completedToday: false,
+        createdAt: now,
+        updatedAt: now,
       ),
       HabitEntity(
         id: 'hab_3',
@@ -53,8 +79,13 @@ class HabitsController extends StateNotifier<List<HabitEntity>> {
         frequency: HabitFrequency.weekly,
         currentStreak: 2,
         completedToday: false,
+        createdAt: now,
+        updatedAt: now,
       ),
     ];
+
+    for (final habit in seed) {
+      await _repo.upsertHabit(habit);
+    }
   }
 }
-

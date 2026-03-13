@@ -1,10 +1,11 @@
-﻿package services
+package services
 
 import (
 	"context"
 	"errors"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,7 +43,10 @@ func (m *InMemoryApp) CreateHabit(ctx context.Context, userID string, input Crea
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	id := newID("hab")
+	id := strings.TrimSpace(input.ID)
+	if id == "" {
+		id = newID("hab")
+	}
 	now := time.Now().UTC()
 
 	habit := domain.Habit{
@@ -182,8 +186,8 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 	m.petStates[userID] = pet
 
 	m.appendChangeLocked(userID, "habit_log", "upsert", log.ID, log.CreatedAt, map[string]any{
-		"habit_id": habitID,
-		"date":     log.Date.Format(time.RFC3339),
+		"habit_id":  habitID,
+		"date":      log.Date.Format(time.RFC3339),
 		"completed": true,
 	})
 	m.appendChangeLocked(userID, "streak", "upsert", habitID, streak.UpdatedAt, map[string]any{
@@ -260,6 +264,7 @@ func (m *InMemoryApp) PushPull(ctx context.Context, userID, deviceID string, cur
 		change.ID = newID("chg")
 		change.UserID = userID
 		change.DeviceID = deviceID
+		m.applySyncChangeLocked(change)
 		m.syncLog = append(m.syncLog, change)
 	}
 
@@ -309,6 +314,196 @@ func (m *InMemoryApp) appendChangeLocked(userID, entity, op, entityID string, up
 		Payload:   payload,
 		UpdatedAt: updatedAt,
 	})
+}
+
+func (m *InMemoryApp) applySyncChangeLocked(change domain.SyncChange) {
+	switch change.Entity {
+	case domain.ChangeEntityHabit:
+		m.applyHabitChangeLocked(change)
+	case domain.ChangeEntityHabitLog:
+		m.applyHabitLogChangeLocked(change)
+	case domain.ChangeEntityStreak:
+		m.applyStreakChangeLocked(change)
+	case domain.ChangeEntityPetState:
+		m.applyPetStateChangeLocked(change)
+	case domain.ChangeEntityStats:
+		m.applyStatsChangeLocked(change)
+	}
+}
+
+func (m *InMemoryApp) applyHabitChangeLocked(change domain.SyncChange) {
+	habit := m.habits[change.EntityID]
+	habit.ID = change.EntityID
+	habit.UserID = change.UserID
+	habit.UpdatedAt = change.UpdatedAt
+
+	if change.Op == domain.ChangeOpDelete {
+		deletedAt := change.UpdatedAt
+		habit.DeletedAt = &deletedAt
+		m.habits[change.EntityID] = habit
+		return
+	}
+
+	if title, ok := change.Payload["title"].(string); ok {
+		habit.Title = title
+	}
+	if category, ok := change.Payload["category"].(string); ok {
+		habit.Category = category
+	}
+	if freq, ok := change.Payload["frequency"].(string); ok {
+		habit.Frequency = domain.HabitFrequency(strings.ToLower(freq))
+	}
+	if habit.CreatedAt.IsZero() {
+		habit.CreatedAt = change.UpdatedAt
+	}
+	m.habits[change.EntityID] = habit
+}
+
+func (m *InMemoryApp) applyHabitLogChangeLocked(change domain.SyncChange) {
+	habitID, ok := change.Payload["habit_id"].(string)
+	if !ok {
+		return
+	}
+	if _, ok := m.habits[habitID]; !ok {
+		return
+	}
+	for _, log := range m.habitLogs {
+		if log.ID == change.EntityID {
+			return
+		}
+	}
+
+	completed := true
+	if value, ok := change.Payload["completed"].(bool); ok {
+		completed = value
+	}
+
+	completedAt := change.UpdatedAt
+	if value, ok := change.Payload["date"].(string); ok {
+		if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+			completedAt = parsed
+		}
+	}
+
+	log := domain.HabitLog{
+		ID:        change.EntityID,
+		UserID:    change.UserID,
+		HabitID:   habitID,
+		Date:      completedAt.UTC(),
+		Completed: completed,
+		CreatedAt: change.UpdatedAt,
+	}
+	m.habitLogs = append(m.habitLogs, log)
+
+	streakKey := change.UserID + ":" + habitID
+	streak := m.streaks[streakKey]
+	streak.UserID = change.UserID
+	streak.HabitID = habitID
+
+	if streak.LastCompleted == nil || !isSameDay(*streak.LastCompleted, completedAt) {
+		if streak.LastCompleted != nil && isYesterday(*streak.LastCompleted, completedAt) {
+			streak.CurrentStreak++
+		} else {
+			streak.CurrentStreak = 1
+		}
+	}
+
+	if streak.CurrentStreak > streak.BestStreak {
+		streak.BestStreak = streak.CurrentStreak
+	}
+
+	streak.LastCompleted = ptrTime(completedAt.UTC())
+	streak.UpdatedAt = change.UpdatedAt
+	m.streaks[streakKey] = streak
+
+	stats := m.stats[change.UserID]
+	stats.UserID = change.UserID
+	stats.TotalCompleted++
+	stats.ActiveDays = computeActiveDays(m.habitLogs, change.UserID)
+	stats.CompletionRate = computeCompletionRate(m.habitLogs, change.UserID)
+	stats.UpdatedAt = change.UpdatedAt
+	m.stats[change.UserID] = stats
+
+	pet := m.petStates[change.UserID]
+	pet.UserID = change.UserID
+	pet = evolvePetState(pet, streak)
+	pet.UpdatedAt = change.UpdatedAt
+	m.petStates[change.UserID] = pet
+
+	m.appendChangeLocked(change.UserID, "streak", "upsert", habitID, streak.UpdatedAt, map[string]any{
+		"current_streak": streak.CurrentStreak,
+		"best_streak":    streak.BestStreak,
+		"last_completed": streak.LastCompleted.Format(time.RFC3339),
+	})
+	m.appendChangeLocked(change.UserID, "pet_state", "upsert", change.UserID, pet.UpdatedAt, map[string]any{
+		"level":                pet.Level,
+		"structure_complexity": pet.StructureComplexity,
+		"damage":               pet.Damage,
+		"energy":               pet.Energy,
+		"mood":                 pet.Mood,
+	})
+	m.appendChangeLocked(change.UserID, "user_stats", "upsert", change.UserID, stats.UpdatedAt, map[string]any{
+		"total_completed": stats.TotalCompleted,
+		"completion_rate": stats.CompletionRate,
+		"active_days":     stats.ActiveDays,
+	})
+}
+
+func (m *InMemoryApp) applyStreakChangeLocked(change domain.SyncChange) {
+	streak := m.streaks[change.UserID+":"+change.EntityID]
+	streak.UserID = change.UserID
+	streak.HabitID = change.EntityID
+	if value, ok := change.Payload["current_streak"].(float64); ok {
+		streak.CurrentStreak = int(value)
+	}
+	if value, ok := change.Payload["best_streak"].(float64); ok {
+		streak.BestStreak = int(value)
+	}
+	if value, ok := change.Payload["last_completed"].(string); ok {
+		if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+			streak.LastCompleted = ptrTime(parsed)
+		}
+	}
+	streak.UpdatedAt = change.UpdatedAt
+	m.streaks[change.UserID+":"+change.EntityID] = streak
+}
+
+func (m *InMemoryApp) applyPetStateChangeLocked(change domain.SyncChange) {
+	pet := m.petStates[change.EntityID]
+	pet.UserID = change.UserID
+	pet.UpdatedAt = change.UpdatedAt
+	if value, ok := change.Payload["level"].(float64); ok {
+		pet.Level = int(value)
+	}
+	if value, ok := change.Payload["structure_complexity"].(float64); ok {
+		pet.StructureComplexity = int(value)
+	}
+	if value, ok := change.Payload["damage"].(float64); ok {
+		pet.Damage = int(value)
+	}
+	if value, ok := change.Payload["energy"].(float64); ok {
+		pet.Energy = int(value)
+	}
+	if value, ok := change.Payload["mood"].(float64); ok {
+		pet.Mood = int(value)
+	}
+	m.petStates[change.EntityID] = pet
+}
+
+func (m *InMemoryApp) applyStatsChangeLocked(change domain.SyncChange) {
+	stats := m.stats[change.EntityID]
+	stats.UserID = change.UserID
+	stats.UpdatedAt = change.UpdatedAt
+	if value, ok := change.Payload["total_completed"].(float64); ok {
+		stats.TotalCompleted = int(value)
+	}
+	if value, ok := change.Payload["completion_rate"].(float64); ok {
+		stats.CompletionRate = value
+	}
+	if value, ok := change.Payload["active_days"].(float64); ok {
+		stats.ActiveDays = int(value)
+	}
+	m.stats[change.EntityID] = stats
 }
 
 func newID(prefix string) string {
@@ -394,4 +589,3 @@ func clamp(value, min, max int) int {
 	}
 	return value
 }
-

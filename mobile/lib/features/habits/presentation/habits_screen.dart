@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -45,7 +45,9 @@ class HabitsScreen extends ConsumerWidget {
                     final habit = habits[index];
                     return HabitCard(
                       habit: habit,
-                      onToggle: () => ref.read(habitsProvider.notifier).toggleCompleted(habit.id),
+                      onToggle: () => ref
+                          .read(habitsProvider.notifier)
+                          .toggleCompleted(habit.id),
                     );
                   },
                 ),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -57,7 +57,8 @@ class HomeScreen extends ConsumerWidget {
                     ],
                   ),
                   child: GestureDetector(
-                    onLongPress: () => _openDebugSheet(context, ref, habits, petState),
+                    onLongPress: () =>
+                        _openDebugSheet(context, ref, habits, petState),
                     child: _CompanionStage(state: effectiveState),
                   ),
                 ),
@@ -78,7 +79,8 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSoft,
                   borderRadius: BorderRadius.circular(20),
@@ -149,10 +151,12 @@ class HomeScreen extends ConsumerWidget {
             petState: petState,
             effectiveState: effectiveState,
             debugState: debugState,
-            onToggle: (id) => ref.read(habitsProvider.notifier).toggleCompleted(id),
+            onToggle: (id) =>
+                ref.read(habitsProvider.notifier).toggleCompleted(id),
             onAdjust: (action) => action(ref.read(petDebugProvider.notifier)),
             onReset: () => ref.read(petDebugProvider.notifier).reset(),
-            onEnable: (value) => ref.read(petDebugProvider.notifier).setEnabled(value),
+            onEnable: (value) =>
+                ref.read(petDebugProvider.notifier).setEnabled(value),
           );
         },
       ),
@@ -242,7 +246,8 @@ class _PetDebugSheet extends StatelessWidget {
   final PetState effectiveState;
   final PetDebugState debugState;
   final void Function(String id) onToggle;
-  final void Function(void Function(PetDebugController controller) action) onAdjust;
+  final void Function(void Function(PetDebugController controller) action)
+      onAdjust;
   final VoidCallback onReset;
   final void Function(bool value) onEnable;
 
@@ -294,7 +299,8 @@ class _PetDebugSheet extends StatelessWidget {
             const SizedBox(height: 12),
             _debugRow(context, 'Stage', _stageLabel(effectiveState.stage)),
             _debugRow(context, 'Level', effectiveState.level.toString()),
-            _debugRow(context, 'Complexity', effectiveState.structureComplexity.toString()),
+            _debugRow(context, 'Complexity',
+                effectiveState.structureComplexity.toString()),
             _debugRow(context, 'Energy', effectiveState.energy.toString()),
             _debugRow(context, 'Damage', effectiveState.damage.toString()),
             _debugRow(context, 'Mood', effectiveState.mood.toString()),
@@ -328,7 +334,9 @@ class _PetDebugSheet extends StatelessWidget {
                   _adjustRow(
                     context,
                     label: 'Complexity',
-                    value: (debugState.structureComplexity ?? petState.structureComplexity).toString(),
+                    value: (debugState.structureComplexity ??
+                            petState.structureComplexity)
+                        .toString(),
                     onMinus: () => onAdjust((c) => c.adjustComplexity(-10)),
                     onPlus: () => onAdjust((c) => c.adjustComplexity(10)),
                   ),
@@ -370,7 +378,8 @@ class _PetDebugSheet extends StatelessWidget {
                   GestureDetector(
                     onTap: () => onToggle(habit.id),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: habit.completedToday
                             ? AppColors.accentGold.withOpacity(0.2)
@@ -438,7 +447,8 @@ class _PetDebugSheet extends StatelessWidget {
     );
   }
 
-  Widget _adjustButton(BuildContext context, IconData icon, VoidCallback onTap) {
+  Widget _adjustButton(
+      BuildContext context, IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),

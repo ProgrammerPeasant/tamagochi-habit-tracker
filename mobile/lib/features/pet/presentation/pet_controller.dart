@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,7 +11,8 @@ final petStateProvider = Provider<PetState>((ref) {
   return _computePetState(habits);
 });
 
-final petDebugProvider = StateNotifierProvider<PetDebugController, PetDebugState>(
+final petDebugProvider =
+    StateNotifierProvider<PetDebugController, PetDebugState>(
   (ref) => PetDebugController(),
 );
 
@@ -113,12 +114,15 @@ PetState _computePetState(List<HabitEntity> habits) {
 
   final total = habits.length;
   final completed = habits.where((habit) => habit.completedToday).length;
-  final streakSum = habits.fold<int>(0, (sum, habit) => sum + habit.currentStreak);
+  final streakSum =
+      habits.fold<int>(0, (sum, habit) => sum + habit.currentStreak);
   final completionRatio = completed / max(total, 1);
 
   final complexity = _clamp(10 + streakSum * 3 + completed * 10, 0, 100);
-  final energy = _clamp((completionRatio * 100).round() + (streakSum ~/ 2), 0, 100);
-  final damage = _clamp(((1 - completionRatio) * 70).round() - (streakSum ~/ 3), 0, 100);
+  final energy =
+      _clamp((completionRatio * 100).round() + (streakSum ~/ 2), 0, 100);
+  final damage =
+      _clamp(((1 - completionRatio) * 70).round() - (streakSum ~/ 3), 0, 100);
   final mood = _clamp(40 + (energy ~/ 2) - (damage ~/ 3), 0, 100);
 
   return PetState(

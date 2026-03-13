@@ -1,4 +1,4 @@
-﻿package httpapi
+package httpapi
 
 import (
 	"errors"
@@ -10,6 +10,7 @@ import (
 )
 
 type createHabitRequest struct {
+	ID        string `json:"id"`
 	Title     string `json:"title"`
 	Category  string `json:"category"`
 	Frequency string `json:"frequency"`
@@ -26,9 +27,9 @@ type completeHabitRequest struct {
 }
 
 type syncRequest struct {
-	DeviceID string        `json:"device_id"`
-	Cursor   string        `json:"cursor"`
-	Changes  []syncChange  `json:"changes"`
+	DeviceID string       `json:"device_id"`
+	Cursor   string       `json:"cursor"`
+	Changes  []syncChange `json:"changes"`
 }
 
 type syncChange struct {
@@ -51,6 +52,7 @@ func (r createHabitRequest) toInput() (services.CreateHabitInput, error) {
 		return services.CreateHabitInput{}, err
 	}
 	return services.CreateHabitInput{
+		ID:        strings.TrimSpace(r.ID),
 		Title:     strings.TrimSpace(r.Title),
 		Category:  strings.TrimSpace(r.Category),
 		Frequency: frequency,

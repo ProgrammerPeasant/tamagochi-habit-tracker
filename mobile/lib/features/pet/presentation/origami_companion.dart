@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -68,9 +68,12 @@ class _OrigamiCompanionState extends State<OrigamiCompanion>
             return AnimatedBuilder(
               animation: _idleController,
               builder: (context, _) {
-                final energyFactor = (widget.state.energy / 100).clamp(0.0, 1.0);
-                final idleAmp = lerpDouble(0.004, 0.018, mathPow(energyFactor, 0.8))!;
-                final breathe = lerpDouble(1 - idleAmp, 1 + idleAmp, _idleController.value)!;
+                final energyFactor =
+                    (widget.state.energy / 100).clamp(0.0, 1.0);
+                final idleAmp =
+                    lerpDouble(0.004, 0.018, mathPow(energyFactor, 0.8))!;
+                final breathe = lerpDouble(
+                    1 - idleAmp, 1 + idleAmp, _idleController.value)!;
                 final drift = Offset(
                   lerpDouble(-6, 6, _idleController.value)!,
                   lerpDouble(6, -4, _idleController.value)!,
@@ -111,4 +114,3 @@ class _OrigamiCompanionState extends State<OrigamiCompanion>
     return math.pow(value, power).toDouble();
   }
 }
-
