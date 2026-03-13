@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"context"
@@ -33,14 +33,15 @@ type SyncService interface {
 }
 
 type App struct {
-	Habits HabitService
+	Habits  HabitService
 	Streaks StreakService
-	Pet PetService
-	Stats StatsService
-	Sync SyncService
+	Pet     PetService
+	Stats   StatsService
+	Sync    SyncService
 }
 
 type CreateHabitInput struct {
+	ID        string
 	Title     string
 	Category  string
 	Frequency domain.HabitFrequency

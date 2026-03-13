@@ -1,4 +1,4 @@
-﻿package httpapi
+package httpapi
 
 import (
 	"encoding/json"
@@ -20,6 +20,11 @@ func New(services *services.App) *API {
 }
 
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	setCors(w)
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	if !strings.HasPrefix(r.URL.Path, "/v1/") {
 		writeError(w, http.StatusNotFound, "route not found")
 		return
@@ -150,10 +155,10 @@ func (a *API) handleHabitComplete(w http.ResponseWriter, r *http.Request, userID
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"habit_id": result.HabitID,
-		"streak":   mapStreak(result.Streak),
+		"habit_id":  result.HabitID,
+		"streak":    mapStreak(result.Streak),
 		"pet_state": mapPetState(result.Pet),
-		"stats":    mapStats(result.Stats),
+		"stats":     mapStats(result.Stats),
 	})
 }
 
@@ -371,4 +376,10 @@ func parseCursor(value string) (time.Time, error) {
 		return time.Time{}, nil
 	}
 	return time.Parse(time.RFC3339, value)
+}
+
+func setCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-Id")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 }

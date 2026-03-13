@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/id_generator.dart';
 import '../../domain/habit.dart';
 
 class HabitFormSheet extends StatefulWidget {
@@ -135,7 +136,8 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
     );
   }
 
-  Widget _frequencyChip(BuildContext context, HabitFrequency value, String label) {
+  Widget _frequencyChip(
+      BuildContext context, HabitFrequency value, String label) {
     final isActive = _frequency == value;
     return GestureDetector(
       onTap: () => setState(() => _frequency = value),
@@ -152,7 +154,8 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
         child: Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+                color:
+                    isActive ? AppColors.textPrimary : AppColors.textSecondary,
               ),
         ),
       ),
@@ -160,17 +163,21 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
   }
 
   void _submit() {
-    if (_titleController.text.trim().isEmpty || _categoryController.text.trim().isEmpty) {
+    if (_titleController.text.trim().isEmpty ||
+        _categoryController.text.trim().isEmpty) {
       return;
     }
 
+    final now = DateTime.now().toUtc();
     final habit = HabitEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: IdGenerator.habitId(),
       title: _titleController.text.trim(),
       category: _categoryController.text.trim(),
       frequency: _frequency,
       currentStreak: 0,
       completedToday: false,
+      createdAt: now,
+      updatedAt: now,
     );
 
     widget.onSubmit(habit);

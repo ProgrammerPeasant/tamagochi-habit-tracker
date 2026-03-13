@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import '../domain/pet_state.dart';
 import 'mesh_types.dart';
@@ -91,8 +91,10 @@ class OrigamiMeshGenerator {
     final base = _diamondGrid(steps: 3, scale: 1.0, bulge: 0.24, seed: seed);
     final builder = _MeshBuilder.fromMesh(base);
 
-    _addWing(builder, Vec3(-1.2, -0.1, 0.08), Vec3(-0.4, -0.25, 0.12), Vec3(-0.6, 0.4, 0.18));
-    _addWing(builder, Vec3(1.2, -0.1, 0.08), Vec3(0.4, -0.25, 0.12), Vec3(0.6, 0.4, 0.18));
+    _addWing(builder, Vec3(-1.2, -0.1, 0.08), Vec3(-0.4, -0.25, 0.12),
+        Vec3(-0.6, 0.4, 0.18));
+    _addWing(builder, Vec3(1.2, -0.1, 0.08), Vec3(0.4, -0.25, 0.12),
+        Vec3(0.6, 0.4, 0.18));
 
     _addSpine(builder, top: Vec3(0, -1.15, 0.22), bottom: Vec3(0, 0.85, 0.12));
 
@@ -225,9 +227,8 @@ class OrigamiMeshGenerator {
 
   Mesh _applyEnergy(Mesh mesh, int energy) {
     final factor = 0.6 + 0.4 * (energy / 100);
-    final vertices = mesh.vertices
-        .map((v) => Vec3(v.x, v.y, v.z * factor))
-        .toList();
+    final vertices =
+        mesh.vertices.map((v) => Vec3(v.x, v.y, v.z * factor)).toList();
     return mesh.copyWith(vertices: vertices);
   }
 
@@ -277,7 +278,8 @@ class OrigamiMeshGenerator {
       }
       if (factor > 0.5) {
         final sag = (factor - 0.5) * 0.3;
-        next = Vec3(next.x * (1 - sag * 0.2), next.y * (1 - sag * 0.2), next.z - sag * 0.2);
+        next = Vec3(next.x * (1 - sag * 0.2), next.y * (1 - sag * 0.2),
+            next.z - sag * 0.2);
       }
       vertices.add(next);
     }
@@ -296,7 +298,8 @@ class OrigamiMeshGenerator {
     return mesh.copyWith(vertices: vertices, faces: faces);
   }
 
-  void _addLayer(_MeshBuilder builder, {required double scale, required double z, required double rotation}) {
+  void _addLayer(_MeshBuilder builder,
+      {required double scale, required double z, required double rotation}) {
     final points = _rotatedDiamond(scale, rotation, z);
     builder.addQuad(points[0], points[1], points[2], points[3]);
   }
@@ -305,7 +308,8 @@ class OrigamiMeshGenerator {
     builder.addTriangle(a, b, c);
   }
 
-  void _addSpine(_MeshBuilder builder, {required Vec3 top, required Vec3 bottom}) {
+  void _addSpine(_MeshBuilder builder,
+      {required Vec3 top, required Vec3 bottom}) {
     builder.addQuad(
       Vec3(top.x - 0.1, top.y + 0.05, top.z),
       Vec3(top.x + 0.1, top.y + 0.05, top.z),
@@ -314,7 +318,8 @@ class OrigamiMeshGenerator {
     );
   }
 
-  void _addBalcony(_MeshBuilder builder, {required bool left, required double z}) {
+  void _addBalcony(_MeshBuilder builder,
+      {required bool left, required double z}) {
     final sign = left ? -1 : 1;
     builder.addQuad(
       Vec3(sign * 1.1, -0.2, z),
@@ -324,7 +329,8 @@ class OrigamiMeshGenerator {
     );
   }
 
-  void _addCantilever(_MeshBuilder builder, {required bool left, required double depth, required double z}) {
+  void _addCantilever(_MeshBuilder builder,
+      {required bool left, required double depth, required double z}) {
     final sign = left ? -1 : 1;
     builder.addQuad(
       Vec3(sign * 1.2, -0.1, z),
@@ -334,7 +340,8 @@ class OrigamiMeshGenerator {
     );
   }
 
-  void _addSpire(_MeshBuilder builder, {required double height, required double scale, Vec3? offset}) {
+  void _addSpire(_MeshBuilder builder,
+      {required double height, required double scale, Vec3? offset}) {
     final center = offset ?? const Vec3(0, 0, 0);
     builder.addTriangle(
       Vec3(center.x, center.y - height, center.z + height * 0.2),
@@ -379,7 +386,8 @@ class _MeshBuilder {
   _MeshBuilder(this.vertices, this.faces);
 
   factory _MeshBuilder.fromMesh(Mesh mesh) {
-    return _MeshBuilder(List<Vec3>.from(mesh.vertices), List<Face>.from(mesh.faces));
+    return _MeshBuilder(
+        List<Vec3>.from(mesh.vertices), List<Face>.from(mesh.faces));
   }
 
   int addVertex(Vec3 vertex) {
@@ -414,5 +422,3 @@ class _PolarVertex {
   _PolarVertex(this.index, this.vertex)
       : angle = math.atan2(vertex.y, vertex.x);
 }
-
-

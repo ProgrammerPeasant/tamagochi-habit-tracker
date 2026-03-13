@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -124,7 +124,8 @@ class OrigamiMeshPainter extends CustomPainter {
     );
   }
 
-  void _drawDamageAccents(Canvas canvas, List<Offset> projected, double damage) {
+  void _drawDamageAccents(
+      Canvas canvas, List<Offset> projected, double damage) {
     if (damage < 0.2 || projected.length < 4) {
       return;
     }
@@ -156,4 +157,3 @@ class _FaceEntry {
 
   _FaceEntry(this.face, this.shade, this.depth);
 }
-
