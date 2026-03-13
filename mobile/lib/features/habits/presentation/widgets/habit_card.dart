@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/habit.dart';
@@ -15,7 +15,8 @@ class HabitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = habit.completedToday ? AppColors.accentGold : AppColors.surfaceSoft;
+    final accent =
+        habit.completedToday ? AppColors.accentGold : AppColors.surfaceSoft;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -82,8 +83,12 @@ class HabitCard extends StatelessWidget {
                     border: Border.all(color: accent.withOpacity(0.6)),
                   ),
                   child: Icon(
-                    habit.completedToday ? Icons.check_rounded : Icons.circle_outlined,
-                    color: habit.completedToday ? AppColors.accentGold : AppColors.textMuted,
+                    habit.completedToday
+                        ? Icons.check_rounded
+                        : Icons.circle_outlined,
+                    color: habit.completedToday
+                        ? AppColors.accentGold
+                        : AppColors.textMuted,
                     size: 22,
                   ),
                 ),

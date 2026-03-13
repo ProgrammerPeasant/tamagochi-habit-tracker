@@ -1,4 +1,4 @@
-﻿class PetState {
+class PetState {
   final int level;
   final int structureComplexity;
   final int damage;

@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:origamit/features/pet/geometry/origami_mesh.dart';
