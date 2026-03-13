@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -113,14 +113,23 @@ class OrigamiMeshPainter extends CustomPainter {
 
   void _drawGlow(Canvas canvas, Size size, double energy) {
     final energyFactor = energy.clamp(0.0, 1.0);
-    final glowPaint = Paint()
-      ..color = AppColors.paperBase.withOpacity(0.06 + energyFactor * 0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
+    final center = Offset(size.width / 2, size.height / 2);
+    final innerGlow = Paint()
+      ..color = AppColors.paperBase.withOpacity(0.12 + energyFactor * 0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28);
+    final outerGlow = Paint()
+      ..color = AppColors.paperBase.withOpacity(0.05 + energyFactor * 0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 56);
 
     canvas.drawCircle(
-      Offset(size.width / 2, size.height / 2),
-      size.shortestSide * 0.32,
-      glowPaint,
+      center,
+      size.shortestSide * (0.38 + energyFactor * 0.08),
+      innerGlow,
+    );
+    canvas.drawCircle(
+      center,
+      size.shortestSide * (0.52 + energyFactor * 0.16),
+      outerGlow,
     );
   }
 
@@ -157,3 +166,5 @@ class _FaceEntry {
 
   _FaceEntry(this.face, this.shade, this.depth);
 }
+
+

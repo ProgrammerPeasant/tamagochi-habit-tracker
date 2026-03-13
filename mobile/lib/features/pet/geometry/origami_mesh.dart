@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import '../domain/pet_state.dart';
 import 'mesh_types.dart';
@@ -233,17 +233,20 @@ class OrigamiMeshGenerator {
   }
 
   Mesh _applyMood(Mesh mesh, int mood, int seed) {
-    final symmetry = (mood / 100).clamp(0.0, 1.0);
-    final distortion = (1 - symmetry).clamp(0.0, 1.0);
-    final noiseAmp = distortion * 0.08;
-    final skewAmp = distortion * 0.12;
-    final wobbleAmp = distortion * 0.06;
+    final normalized = (mood / 100).clamp(0.0, 1.0);
+    final distortion = (1 - normalized).clamp(0.0, 1.0);
+    final mirrorBlend = math.pow(distortion, 1.8) * 0.85;
+    final noiseAmp = math.pow(distortion, 1.2) * 0.07;
+    final skewAmp = math.pow(distortion, 1.15) * 0.1;
+    final wobbleAmp = math.pow(distortion, 1.1) * 0.05;
+    final squash = 1 - distortion * 0.35;
 
     final vertices = <Vec3>[];
     for (var i = 0; i < mesh.vertices.length; i++) {
       final v = mesh.vertices[i];
       final mirrored = Vec3(-v.x, v.y, v.z);
-      var blended = v.lerp(mirrored, symmetry);
+      var blended = v.lerp(mirrored, mirrorBlend);
+      blended = Vec3(blended.x * squash, blended.y, blended.z);
 
       if (distortion > 0) {
         final nx = (_hash(seed + 3, i) - 0.5) * noiseAmp;
@@ -422,3 +425,5 @@ class _PolarVertex {
   _PolarVertex(this.index, this.vertex)
       : angle = math.atan2(vertex.y, vertex.x);
 }
+
+
