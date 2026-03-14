@@ -95,7 +95,7 @@ class HomeScreen extends ConsumerWidget {
                             Container(
                               width: 10,
                               height: 10,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: AppColors.accentSteel,
                                 shape: BoxShape.circle,
                               ),
@@ -382,12 +382,12 @@ class _PetDebugSheet extends StatelessWidget {
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: habit.completedToday
-                            ? AppColors.accentGold.withOpacity(0.2)
+                            ? AppColors.accentGold.withAlpha(51)
                             : AppColors.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: habit.completedToday
-                              ? AppColors.accentGold.withOpacity(0.6)
+                              ? AppColors.accentGold.withAlpha(153)
                               : AppColors.surfaceSoft,
                         ),
                       ),

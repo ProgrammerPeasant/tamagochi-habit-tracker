@@ -91,12 +91,14 @@ class OrigamiMeshGenerator {
     final base = _diamondGrid(steps: 3, scale: 1.0, bulge: 0.24, seed: seed);
     final builder = _MeshBuilder.fromMesh(base);
 
-    _addWing(builder, Vec3(-1.2, -0.1, 0.08), Vec3(-0.4, -0.25, 0.12),
-        Vec3(-0.6, 0.4, 0.18));
-    _addWing(builder, Vec3(1.2, -0.1, 0.08), Vec3(0.4, -0.25, 0.12),
-        Vec3(0.6, 0.4, 0.18));
+    _addWing(builder, const Vec3(-1.2, -0.1, 0.08),
+        const Vec3(-0.4, -0.25, 0.12), const Vec3(-0.6, 0.4, 0.18));
+    _addWing(builder, const Vec3(1.2, -0.1, 0.08),
+        const Vec3(0.4, -0.25, 0.12), const Vec3(0.6, 0.4, 0.18));
 
-    _addSpine(builder, top: Vec3(0, -1.15, 0.22), bottom: Vec3(0, 0.85, 0.12));
+    _addSpine(builder,
+        top: const Vec3(0, -1.15, 0.22),
+        bottom: const Vec3(0, 0.85, 0.12));
 
     return builder.build();
   }
@@ -130,7 +132,8 @@ class OrigamiMeshGenerator {
     _addCantilever(builder, left: false, depth: 0.55, z: 0.44);
 
     _addSpire(builder, height: 1.2, scale: 0.3);
-    _addSpire(builder, height: 0.9, scale: 0.18, offset: Vec3(0.2, -0.2, 0));
+    _addSpire(builder,
+        height: 0.9, scale: 0.18, offset: const Vec3(0.2, -0.2, 0));
 
     return builder.build();
   }

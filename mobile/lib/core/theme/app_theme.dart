@@ -10,7 +10,6 @@ class AppTheme {
       brightness: Brightness.dark,
       primary: AppColors.textPrimary,
       surface: AppColors.surface,
-      background: AppColors.primaryBackground,
     );
 
     return ThemeData(
@@ -27,17 +26,17 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.secondaryBackground,
         indicatorColor: AppColors.surfaceSoft,
-        labelTextStyle: MaterialStateProperty.resolveWith(
+        labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
-            color: states.contains(MaterialState.selected)
+            color: states.contains(WidgetState.selected)
                 ? AppColors.textPrimary
                 : AppColors.textMuted,
             fontSize: 12,
           ),
         ),
-        iconTheme: MaterialStateProperty.resolveWith(
+        iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
-            color: states.contains(MaterialState.selected)
+            color: states.contains(WidgetState.selected)
                 ? AppColors.textPrimary
                 : AppColors.textMuted,
           ),

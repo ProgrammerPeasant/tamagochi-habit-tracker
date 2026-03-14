@@ -57,7 +57,7 @@ class OrigamiMeshPainter extends CustomPainter {
       )!;
 
       final paint = Paint()
-        ..color = baseColor.withOpacity(face.opacity)
+        ..color = _withOpacity(baseColor, face.opacity)
         ..style = PaintingStyle.fill;
 
       canvas.drawPath(path, paint);
@@ -97,7 +97,7 @@ class OrigamiMeshPainter extends CustomPainter {
 
   void _drawEdges(Canvas canvas, List<Offset> projected, List<Face> faces) {
     final edgePaint = Paint()
-      ..color = AppColors.paperDark.withOpacity(0.22)
+      ..color = _withOpacity(AppColors.paperDark, 0.22)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.7;
 
@@ -115,10 +115,10 @@ class OrigamiMeshPainter extends CustomPainter {
     final energyFactor = energy.clamp(0.0, 1.0);
     final center = Offset(size.width / 2, size.height / 2);
     final innerGlow = Paint()
-      ..color = AppColors.paperBase.withOpacity(0.12 + energyFactor * 0.22)
+      ..color = _withOpacity(AppColors.paperBase, 0.12 + energyFactor * 0.22)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28);
     final outerGlow = Paint()
-      ..color = AppColors.paperBase.withOpacity(0.05 + energyFactor * 0.12)
+      ..color = _withOpacity(AppColors.paperBase, 0.05 + energyFactor * 0.12)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 56);
 
     canvas.drawCircle(
@@ -140,7 +140,7 @@ class OrigamiMeshPainter extends CustomPainter {
     }
 
     final crackPaint = Paint()
-      ..color = AppColors.paperDark.withOpacity(0.25 + damage * 0.4)
+      ..color = _withOpacity(AppColors.paperDark, 0.25 + damage * 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -150,7 +150,7 @@ class OrigamiMeshPainter extends CustomPainter {
 
     if (damage > 0.6) {
       final accentPaint = Paint()
-        ..color = AppColors.accentGold.withOpacity(0.3)
+        ..color = _withOpacity(AppColors.accentGold, 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.6;
 
@@ -165,6 +165,11 @@ class _FaceEntry {
   final double depth;
 
   _FaceEntry(this.face, this.shade, this.depth);
+}
+
+Color _withOpacity(Color color, double opacity) {
+  final clamped = opacity.clamp(0.0, 1.0);
+  return color.withAlpha((clamped * 255).round());
 }
 
 

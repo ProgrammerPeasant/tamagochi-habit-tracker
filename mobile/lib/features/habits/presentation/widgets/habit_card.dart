@@ -23,7 +23,7 @@ class HabitCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withOpacity(0.4)),
+        border: Border.all(color: accent.withAlpha(102)),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadowSoft,
@@ -38,7 +38,7 @@ class HabitCard extends StatelessWidget {
             width: 6,
             height: 56,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.7),
+              color: accent.withAlpha(179),
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -77,10 +77,10 @@ class HabitCard extends StatelessWidget {
                   height: 42,
                   decoration: BoxDecoration(
                     color: habit.completedToday
-                        ? AppColors.accentGold.withOpacity(0.2)
+                        ? AppColors.accentGold.withAlpha(51)
                         : AppColors.surfaceSoft,
                     shape: BoxShape.circle,
-                    border: Border.all(color: accent.withOpacity(0.6)),
+                    border: Border.all(color: accent.withAlpha(153)),
                   ),
                   child: Icon(
                     habit.completedToday

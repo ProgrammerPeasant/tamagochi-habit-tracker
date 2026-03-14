@@ -101,7 +101,7 @@ class _SummaryRow extends StatelessWidget {
             value: habitsCount.toString(),
           ),
           const SizedBox(width: 12),
-          _SummaryPill(
+          const _SummaryPill(
             label: 'Focus',
             value: 'Daily',
           ),
