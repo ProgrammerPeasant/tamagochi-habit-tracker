@@ -3,9 +3,9 @@ import '../domain/notification_plan.dart';
 import 'habit_log_reader.dart';
 
 class NotificationsPlanner {
-  NotificationsPlanner();
+  NotificationsPlanner({HabitLogReader? logs}) : _logs = logs ?? HabitLogReader();
 
-  final HabitLogReader _logs = HabitLogReader();
+  final HabitLogReader _logs;
 
   Future<List<NotificationPlan>> buildPlans(List<HabitEntity> habits) async {
     final now = DateTime.now();

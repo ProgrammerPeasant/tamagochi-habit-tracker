@@ -8,9 +8,11 @@ final syncControllerProvider =
 );
 
 class SyncController extends StateNotifier<SyncStateView> {
-  SyncController() : super(const SyncStateView());
+  SyncController({SyncService? service})
+      : _service = service ?? SyncService(),
+        super(const SyncStateView());
 
-  final SyncService _service = SyncService();
+  final SyncService _service;
 
   Future<void> sync() async {
     if (state.isSyncing) {

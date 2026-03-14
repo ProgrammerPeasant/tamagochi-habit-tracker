@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/sync/sync_controller.dart';
 import '../features/habits/presentation/habits_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/notifications/presentation/notifications_controller.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -29,6 +30,7 @@ class _RootShellState extends ConsumerState<RootShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncControllerProvider.notifier).sync();
+      ref.read(notificationsProvider);
     });
   }
 

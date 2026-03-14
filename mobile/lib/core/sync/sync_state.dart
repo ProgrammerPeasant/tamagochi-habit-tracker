@@ -6,10 +6,15 @@ import '../storage/memory_store.dart';
 import '../utils/id_generator.dart';
 
 class SyncStateDao {
+  SyncStateDao({bool forceMemoryStore = false})
+      : _forceMemoryStore = forceMemoryStore;
+
+  final bool _forceMemoryStore;
+
   static const _stateId = 'main';
 
   Future<SyncState> getState() async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final store = MemoryStore.instance;
       return SyncState(
         id: _stateId,
@@ -36,7 +41,7 @@ class SyncStateDao {
   }
 
   Future<void> updateCursor(String cursor) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final store = MemoryStore.instance;
       store.cursor = cursor;
       store.syncUpdatedAt = DateTime.now().toUtc();

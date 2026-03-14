@@ -8,8 +8,13 @@ import '../../../core/utils/id_generator.dart';
 import '../domain/habit.dart';
 
 class HabitsLocalDataSource {
+  HabitsLocalDataSource({bool forceMemoryStore = false})
+      : _forceMemoryStore = forceMemoryStore;
+
+  final bool _forceMemoryStore;
+
   Future<List<HabitEntity>> fetchHabits() async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final items = MemoryStore.instance.habits.values
           .where((habit) => habit.deletedAt == null)
           .toList();
@@ -26,7 +31,7 @@ class HabitsLocalDataSource {
   }
 
   Future<HabitEntity?> fetchHabit(String id) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       return MemoryStore.instance.habits[id];
     }
     final db = await AppDatabase.instance.database;
@@ -37,7 +42,7 @@ class HabitsLocalDataSource {
   }
 
   Future<void> upsertHabit(HabitEntity habit) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       MemoryStore.instance.habits[habit.id] = habit;
       return;
     }
@@ -50,7 +55,7 @@ class HabitsLocalDataSource {
   }
 
   Future<void> deleteHabit(String id, DateTime deletedAt) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final existing = MemoryStore.instance.habits[id];
       if (existing == null) return;
       MemoryStore.instance.habits[id] = existing.copyWith(
@@ -72,7 +77,7 @@ class HabitsLocalDataSource {
   }
 
   Future<ToggleResult?> toggleCompletion(String id) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final store = MemoryStore.instance;
       final current = store.habits[id];
       if (current == null) return null;

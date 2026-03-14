@@ -10,6 +10,11 @@ import '../utils/id_generator.dart';
 import 'sync_models.dart';
 
 class SyncQueueDao {
+  SyncQueueDao({bool forceMemoryStore = false})
+      : _forceMemoryStore = forceMemoryStore;
+
+  final bool _forceMemoryStore;
+
   Future<void> enqueue({
     required String deviceId,
     required String entity,
@@ -20,7 +25,7 @@ class SyncQueueDao {
   }) async {
     final now = updatedAt ?? DateTime.now().toUtc();
 
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       MemoryStore.instance.syncQueue.add(
         MemorySyncQueueItem(
           id: IdGenerator.syncId(),
@@ -53,7 +58,7 @@ class SyncQueueDao {
   }
 
   Future<List<SyncQueueItem>> listPending({int limit = 50}) async {
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       final items = MemoryStore.instance.syncQueue.toList();
       items.sort((a, b) => a.change.updatedAt.compareTo(b.change.updatedAt));
       return items
@@ -74,7 +79,7 @@ class SyncQueueDao {
   Future<void> deleteByIds(List<String> ids) async {
     if (ids.isEmpty) return;
 
-    if (kIsWeb) {
+    if (kIsWeb || _forceMemoryStore) {
       MemoryStore.instance.syncQueue
           .removeWhere((item) => ids.contains(item.id));
       return;
