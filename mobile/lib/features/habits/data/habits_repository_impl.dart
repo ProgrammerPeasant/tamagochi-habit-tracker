@@ -83,8 +83,8 @@ class HabitsRepositoryImpl implements HabitsRepository {
   }
 
   @override
-  Future<void> toggleCompleted(String id) async {
-    final result = await _local.toggleCompletion(id);
+  Future<void> toggleCompleted(String id, {String? notes}) async {
+    final result = await _local.toggleCompletion(id, notes: notes);
     if (result == null) {
       return;
     }
@@ -93,7 +93,7 @@ class HabitsRepositoryImpl implements HabitsRepository {
     await _refreshLocalDerived(id, result.updatedHabit, now);
 
     try {
-      final completion = await _remote.completeHabit(id, now);
+      final completion = await _remote.completeHabit(id, now, notes: result.notes);
       await _streaksLocal.upsertStreaks([completion.streak]);
       await _statsLocal.upsertStats(completion.stats);
       await _petLocal.upsertPetState(
@@ -111,6 +111,7 @@ class HabitsRepositoryImpl implements HabitsRepository {
             'habit_id': id,
             'date': DbTime.format(now),
             'completed': true,
+            'notes': result.notes,
             'created_at': DbTime.format(now),
           },
         );
@@ -160,6 +161,7 @@ class HabitsRepositoryImpl implements HabitsRepository {
         'title': habit.title,
         'category': habit.category,
         'frequency': habit.frequency.name,
+        'difficulty': habit.difficulty.name,
         'current_streak': habit.currentStreak,
         'completed_today': habit.completedToday ? 1 : 0,
         'last_completed_at': habit.lastCompletedAt != null

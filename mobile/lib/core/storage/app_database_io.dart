@@ -20,7 +20,7 @@ class AppDatabase {
     return databaseFactoryFfi.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       ),
@@ -34,6 +34,7 @@ class AppDatabase {
         title TEXT NOT NULL,
         category TEXT NOT NULL,
         frequency TEXT NOT NULL,
+        difficulty TEXT NOT NULL DEFAULT 'medium',
         current_streak INTEGER NOT NULL,
         completed_today INTEGER NOT NULL,
         last_completed_at TEXT,
@@ -49,6 +50,7 @@ class AppDatabase {
         habit_id TEXT NOT NULL,
         date TEXT NOT NULL,
         completed INTEGER NOT NULL,
+        notes TEXT,
         created_at TEXT NOT NULL
       );
     ''');
@@ -112,6 +114,14 @@ class AppDatabase {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await _createNotificationsTable(db);
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        "ALTER TABLE habits ADD COLUMN difficulty TEXT NOT NULL DEFAULT 'medium'",
+      );
+      await db.execute(
+        "ALTER TABLE habit_logs ADD COLUMN notes TEXT",
+      );
     }
   }
 
