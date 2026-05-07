@@ -1,67 +1,72 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'app_palette.dart';
 import 'app_typography.dart';
 
 class AppTheme {
-  static ThemeData dark() {
+  static ThemeData dark() => _build(AppPalette.dark, Brightness.dark);
+  static ThemeData light() => _build(AppPalette.light, Brightness.light);
+
+  static ThemeData _build(AppPalette p, Brightness brightness) {
     final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.accentGold,
-      brightness: Brightness.dark,
-      primary: AppColors.textPrimary,
-      surface: AppColors.surface,
-      background: AppColors.primaryBackground,
+      seedColor: p.accentGold,
+      brightness: brightness,
+      primary: p.textPrimary,
+      surface: p.surface,
+      background: p.primaryBackground,
     );
 
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.primaryBackground,
-      textTheme: AppTypography.textTheme,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryBackground,
+      scaffoldBackgroundColor: p.primaryBackground,
+      textTheme: AppTypography.buildTextTheme(p),
+      extensions: <ThemeExtension<dynamic>>[p],
+      appBarTheme: AppBarTheme(
+        backgroundColor: p.primaryBackground,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: p.textPrimary,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.secondaryBackground,
-        indicatorColor: AppColors.surfaceSoft,
+        backgroundColor: p.secondaryBackground,
+        indicatorColor: p.surfaceSoft,
         labelTextStyle: MaterialStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(MaterialState.selected)
-                ? AppColors.textPrimary
-                : AppColors.textMuted,
+                ? p.textPrimary
+                : p.textMuted,
             fontSize: 12,
           ),
         ),
         iconTheme: MaterialStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(MaterialState.selected)
-                ? AppColors.textPrimary
-                : AppColors.textMuted,
+                ? p.textPrimary
+                : p.textMuted,
           ),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.textPrimary,
-        foregroundColor: AppColors.primaryBackground,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.textPrimary,
+        foregroundColor: p.primaryBackground,
         elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceSoft,
+        fillColor: p.surfaceSoft,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: p.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      dividerColor: AppColors.surfaceSoft,
+      dividerColor: p.surfaceSoft,
     );
   }
 }

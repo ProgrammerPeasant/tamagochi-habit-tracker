@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../habits/domain/habit.dart';
 import '../../habits/presentation/habits_controller.dart';
 import '../../pet/domain/pet_state.dart';
@@ -39,20 +39,20 @@ class HomeScreen extends ConsumerWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.surface,
-                        AppColors.secondaryBackground,
+                        context.palette.surface,
+                        context.palette.secondaryBackground,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(28),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: AppColors.shadowSoft,
+                        color: context.palette.shadowSoft,
                         blurRadius: 30,
-                        offset: Offset(-12, 18),
+                        offset: const Offset(-12, 18),
                       ),
                     ],
                   ),
@@ -82,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceSoft,
+                  color: context.palette.surfaceSoft,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
@@ -96,7 +96,7 @@ class HomeScreen extends ConsumerWidget {
                               width: 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: AppColors.accentSteel,
+                                color: context.palette.accentSteel,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -137,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: context.palette.secondaryBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -223,7 +223,7 @@ class _StatPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: context.palette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -278,7 +278,7 @@ class _PetDebugSheet extends StatelessWidget {
               width: 48,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.surfaceSoft,
+                color: context.palette.surfaceSoft,
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
@@ -382,21 +382,21 @@ class _PetDebugSheet extends StatelessWidget {
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: habit.completedToday
-                            ? AppColors.accentGold.withOpacity(0.2)
-                            : AppColors.surface,
+                            ? context.palette.accentGold.withOpacity(0.2)
+                            : context.palette.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: habit.completedToday
-                              ? AppColors.accentGold.withOpacity(0.6)
-                              : AppColors.surfaceSoft,
+                              ? context.palette.accentGold.withOpacity(0.6)
+                              : context.palette.surfaceSoft,
                         ),
                       ),
                       child: Text(
                         habit.title,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: habit.completedToday
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
+                                  ? context.palette.textPrimary
+                                  : context.palette.textSecondary,
                             ),
                       ),
                     ),
@@ -456,10 +456,10 @@ class _PetDebugSheet extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: AppColors.surfaceSoft,
+          color: context.palette.surfaceSoft,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, size: 18, color: AppColors.textSecondary),
+        child: Icon(icon, size: 18, color: context.palette.textSecondary),
       ),
     );
   }
