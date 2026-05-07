@@ -12,7 +12,7 @@ type HabitService interface {
 	ListHabits(ctx context.Context, userID string) ([]domain.Habit, error)
 	UpdateHabit(ctx context.Context, userID, habitID string, input UpdateHabitInput) (domain.Habit, error)
 	DeleteHabit(ctx context.Context, userID, habitID string) (DeleteResult, error)
-	CompleteHabit(ctx context.Context, userID, habitID string, completedAt time.Time) (CompletionResult, error)
+	CompleteHabit(ctx context.Context, userID, habitID string, completedAt time.Time, notes string) (CompletionResult, error)
 }
 
 type StreakService interface {
@@ -32,25 +32,33 @@ type SyncService interface {
 	PullSince(ctx context.Context, userID, deviceID string, cursor time.Time) (time.Time, []domain.SyncChange, error)
 }
 
+type AuthService interface {
+	Register(ctx context.Context, email, password string) (domain.User, error)
+	Authenticate(ctx context.Context, email, password string) (domain.User, error)
+}
+
 type App struct {
 	Habits  HabitService
 	Streaks StreakService
 	Pet     PetService
 	Stats   StatsService
 	Sync    SyncService
+	Auth    AuthService
 }
 
 type CreateHabitInput struct {
-	ID        string
-	Title     string
-	Category  string
-	Frequency domain.HabitFrequency
+	ID         string
+	Title      string
+	Category   string
+	Frequency  domain.HabitFrequency
+	Difficulty domain.HabitDifficulty
 }
 
 type UpdateHabitInput struct {
-	Title     string
-	Category  string
-	Frequency domain.HabitFrequency
+	Title      string
+	Category   string
+	Frequency  domain.HabitFrequency
+	Difficulty domain.HabitDifficulty
 }
 
 type DeleteResult struct {

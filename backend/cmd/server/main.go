@@ -1,25 +1,39 @@
-﻿package main
+package main
 
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	httpapi "origamit-tamagochi-tracker/backend/api/http"
+	"origamit-tamagochi-tracker/backend/internal/auth"
 	"origamit-tamagochi-tracker/backend/services"
 )
 
 func main() {
 	app := services.NewInMemoryApp()
-	api := httpapi.New(app)
+
+	secret := os.Getenv("ORIGAMIT_JWT_SECRET")
+	if secret == "" {
+		secret = "origamit-dev-secret-change-me"
+	}
+	signer := auth.NewSigner(secret, 24*time.Hour)
+
+	api := httpapi.New(app, signer)
+
+	addr := os.Getenv("ORIGAMIT_LISTEN_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
 
 	srv := &http.Server{
-		Addr:              ":8080",
+		Addr:              addr,
 		Handler:           api,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	log.Println("origamit api running on :8080")
+	log.Printf("origamit api running on %s", addr)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
