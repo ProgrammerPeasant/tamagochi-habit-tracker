@@ -43,6 +43,7 @@ class HabitLogEntry {
   final String habitId;
   final DateTime date;
   final bool completed;
+  final String? notes;
   final DateTime createdAt;
 
   HabitLogEntry({
@@ -50,6 +51,7 @@ class HabitLogEntry {
     required this.habitId,
     required this.date,
     required this.completed,
+    this.notes,
     required this.createdAt,
   });
 }

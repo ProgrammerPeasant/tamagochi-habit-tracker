@@ -32,6 +32,7 @@ class HabitsRemoteDataSource {
         'title': habit.title,
         'category': habit.category,
         'frequency': habit.frequency.name,
+        'difficulty': habit.difficulty.name,
       },
     );
     return _mapHabit(json);
@@ -48,6 +49,7 @@ class HabitsRemoteDataSource {
         'title': habit.title,
         'category': habit.category,
         'frequency': habit.frequency.name,
+        'difficulty': habit.difficulty.name,
       },
     );
     return _mapHabit(json);
@@ -62,13 +64,18 @@ class HabitsRemoteDataSource {
     String habitId,
     DateTime completedAt, {
     String userId = ApiConfig.defaultUserId,
+    String? notes,
   }) async {
+    final body = <String, dynamic>{
+      'completed_at': DbTime.format(completedAt),
+    };
+    if (notes != null && notes.isNotEmpty) {
+      body['notes'] = notes;
+    }
     final json = await _apiClient.completeHabit(
       userId: userId,
       habitId: habitId,
-      body: {
-        'completed_at': DbTime.format(completedAt),
-      },
+      body: body,
     );
 
     final streakJson = Map<String, dynamic>.from(json['streak'] as Map);
@@ -114,6 +121,10 @@ class HabitsRemoteDataSource {
       frequency: HabitFrequency.values.firstWhere(
         (value) => value.name == json['frequency'],
         orElse: () => HabitFrequency.daily,
+      ),
+      difficulty: HabitDifficulty.values.firstWhere(
+        (value) => value.name == json['difficulty'],
+        orElse: () => HabitDifficulty.medium,
       ),
       currentStreak: 0,
       completedToday: false,

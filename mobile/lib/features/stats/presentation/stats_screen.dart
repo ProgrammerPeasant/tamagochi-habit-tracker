@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../habits/domain/habit.dart';
 import '../../habits/presentation/habits_controller.dart';
 import 'stats_controller.dart';
@@ -85,7 +85,7 @@ class StatsScreen extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: context.palette.surface,
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Row(
@@ -131,7 +131,7 @@ class StatsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceSoft,
+          color: context.palette.surfaceSoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -151,7 +151,7 @@ class StatsScreen extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: context.palette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text(message, style: Theme.of(context).textTheme.bodySmall),

@@ -31,13 +31,19 @@ class HabitsController extends StateNotifier<List<HabitEntity>> {
     state = items;
   }
 
-  Future<void> toggleCompleted(String id) async {
-    await _repo.toggleCompleted(id);
+  Future<void> toggleCompleted(String id, {String? notes}) async {
+    await _repo.toggleCompleted(id, notes: notes);
     state = await _repo.listHabits();
     unawaited(_ref.read(syncControllerProvider.notifier).sync());
   }
 
   Future<void> addHabit(HabitEntity habit) async {
+    await _repo.upsertHabit(habit);
+    state = await _repo.listHabits();
+    unawaited(_ref.read(syncControllerProvider.notifier).sync());
+  }
+
+  Future<void> updateHabit(HabitEntity habit) async {
     await _repo.upsertHabit(habit);
     state = await _repo.listHabits();
     unawaited(_ref.read(syncControllerProvider.notifier).sync());

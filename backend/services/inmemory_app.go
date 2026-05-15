@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"origamit-tamagochi-tracker/backend/domain"
+	"origamit-tamagochi-tracker/backend/internal/auth"
 )
 
 type InMemoryApp struct {
@@ -20,6 +21,8 @@ type InMemoryApp struct {
 	petStates map[string]domain.PetState
 	stats     map[string]domain.UserStats
 	syncLog   []domain.SyncChange
+	users     map[string]domain.User
+	usersByID map[string]string
 }
 
 func NewInMemoryApp() *App {
@@ -28,6 +31,8 @@ func NewInMemoryApp() *App {
 		streaks:   make(map[string]domain.Streak),
 		petStates: make(map[string]domain.PetState),
 		stats:     make(map[string]domain.UserStats),
+		users:     make(map[string]domain.User),
+		usersByID: make(map[string]string),
 	}
 
 	return &App{
@@ -36,7 +41,54 @@ func NewInMemoryApp() *App {
 		Pet:     mem,
 		Stats:   mem,
 		Sync:    mem,
+		Auth:    mem,
 	}
+}
+
+func (m *InMemoryApp) Register(ctx context.Context, email, password string) (domain.User, error) {
+	email = strings.TrimSpace(strings.ToLower(email))
+	if email == "" {
+		return domain.User{}, errors.New("email required")
+	}
+	if len(password) < 6 {
+		return domain.User{}, errors.New("password must be at least 6 characters")
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, exists := m.users[email]; exists {
+		return domain.User{}, errors.New("user already exists")
+	}
+
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	user := domain.User{
+		ID:           newID("usr"),
+		Email:        email,
+		PasswordHash: hash,
+		CreatedAt:    time.Now().UTC(),
+	}
+	m.users[email] = user
+	m.usersByID[user.ID] = email
+	return user, nil
+}
+
+func (m *InMemoryApp) Authenticate(ctx context.Context, email, password string) (domain.User, error) {
+	email = strings.TrimSpace(strings.ToLower(email))
+	m.mu.Lock()
+	user, ok := m.users[email]
+	m.mu.Unlock()
+	if !ok {
+		return domain.User{}, errors.New("invalid credentials")
+	}
+	if !auth.VerifyPassword(password, user.PasswordHash) {
+		return domain.User{}, errors.New("invalid credentials")
+	}
+	return user, nil
 }
 
 func (m *InMemoryApp) CreateHabit(ctx context.Context, userID string, input CreateHabitInput) (domain.Habit, error) {
@@ -49,21 +101,27 @@ func (m *InMemoryApp) CreateHabit(ctx context.Context, userID string, input Crea
 	}
 	now := time.Now().UTC()
 
+	difficulty := input.Difficulty
+	if difficulty == "" {
+		difficulty = domain.DifficultyMedium
+	}
 	habit := domain.Habit{
-		ID:        id,
-		UserID:    userID,
-		Title:     input.Title,
-		Category:  input.Category,
-		Frequency: input.Frequency,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:         id,
+		UserID:     userID,
+		Title:      input.Title,
+		Category:   input.Category,
+		Frequency:  input.Frequency,
+		Difficulty: difficulty,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 
 	m.habits[id] = habit
 	m.appendChangeLocked(userID, "habit", "upsert", id, now, map[string]any{
-		"title":     habit.Title,
-		"category":  habit.Category,
-		"frequency": string(habit.Frequency),
+		"title":      habit.Title,
+		"category":   habit.Category,
+		"frequency":  string(habit.Frequency),
+		"difficulty": string(habit.Difficulty),
 	})
 
 	return habit, nil
@@ -100,13 +158,17 @@ func (m *InMemoryApp) UpdateHabit(ctx context.Context, userID, habitID string, i
 	habit.Title = input.Title
 	habit.Category = input.Category
 	habit.Frequency = input.Frequency
+	if input.Difficulty != "" {
+		habit.Difficulty = input.Difficulty
+	}
 	habit.UpdatedAt = time.Now().UTC()
 
 	m.habits[habitID] = habit
 	m.appendChangeLocked(userID, "habit", "upsert", habitID, habit.UpdatedAt, map[string]any{
-		"title":     habit.Title,
-		"category":  habit.Category,
-		"frequency": string(habit.Frequency),
+		"title":      habit.Title,
+		"category":   habit.Category,
+		"frequency":  string(habit.Frequency),
+		"difficulty": string(habit.Difficulty),
 	})
 
 	return habit, nil
@@ -131,7 +193,7 @@ func (m *InMemoryApp) DeleteHabit(ctx context.Context, userID, habitID string) (
 	return DeleteResult{ID: habitID, DeletedAt: deletedAt}, nil
 }
 
-func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string, completedAt time.Time) (CompletionResult, error) {
+func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string, completedAt time.Time, notes string) (CompletionResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -146,6 +208,7 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 		HabitID:   habitID,
 		Date:      completedAt.UTC(),
 		Completed: true,
+		Notes:     notes,
 		CreatedAt: time.Now().UTC(),
 	}
 	m.habitLogs = append(m.habitLogs, log)
@@ -189,6 +252,7 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 		"habit_id":  habitID,
 		"date":      log.Date.Format(time.RFC3339),
 		"completed": true,
+		"notes":     notes,
 	})
 	m.appendChangeLocked(userID, "streak", "upsert", habitID, streak.UpdatedAt, map[string]any{
 		"current_streak": streak.CurrentStreak,
@@ -353,6 +417,12 @@ func (m *InMemoryApp) applyHabitChangeLocked(change domain.SyncChange) {
 	if freq, ok := change.Payload["frequency"].(string); ok {
 		habit.Frequency = domain.HabitFrequency(strings.ToLower(freq))
 	}
+	if diff, ok := change.Payload["difficulty"].(string); ok {
+		habit.Difficulty = domain.HabitDifficulty(strings.ToLower(diff))
+	}
+	if habit.Difficulty == "" {
+		habit.Difficulty = domain.DifficultyMedium
+	}
 	if habit.CreatedAt.IsZero() {
 		habit.CreatedAt = change.UpdatedAt
 	}
@@ -385,12 +455,18 @@ func (m *InMemoryApp) applyHabitLogChangeLocked(change domain.SyncChange) {
 		}
 	}
 
+	notes := ""
+	if value, ok := change.Payload["notes"].(string); ok {
+		notes = value
+	}
+
 	log := domain.HabitLog{
 		ID:        change.EntityID,
 		UserID:    change.UserID,
 		HabitID:   habitID,
 		Date:      completedAt.UTC(),
 		Completed: completed,
+		Notes:     notes,
 		CreatedAt: change.UpdatedAt,
 	}
 	m.habitLogs = append(m.habitLogs, log)

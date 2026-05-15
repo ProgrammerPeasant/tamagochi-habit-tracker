@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../domain/habit.dart';
 
 class HabitFormSheet extends StatefulWidget {
   final void Function(HabitEntity habit) onSubmit;
+  final HabitEntity? initial;
 
   const HabitFormSheet({
     super.key,
     required this.onSubmit,
+    this.initial,
   });
 
   @override
@@ -17,9 +19,22 @@ class HabitFormSheet extends StatefulWidget {
 }
 
 class _HabitFormSheetState extends State<HabitFormSheet> {
-  final _titleController = TextEditingController();
-  final _categoryController = TextEditingController();
-  HabitFrequency _frequency = HabitFrequency.daily;
+  late final TextEditingController _titleController;
+  late final TextEditingController _categoryController;
+  late HabitFrequency _frequency;
+  late HabitDifficulty _difficulty;
+
+  bool get _isEditing => widget.initial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    _titleController = TextEditingController(text: initial?.title ?? '');
+    _categoryController = TextEditingController(text: initial?.category ?? '');
+    _frequency = initial?.frequency ?? HabitFrequency.daily;
+    _difficulty = initial?.difficulty ?? HabitDifficulty.medium;
+  }
 
   @override
   void dispose() {
@@ -30,6 +45,7 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final p = context.palette;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -45,13 +61,13 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
             width: 48,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
+              color: p.surfaceSoft,
               borderRadius: BorderRadius.circular(20),
             ),
           ),
           const SizedBox(height: 18),
           Text(
-            'New habit',
+            _isEditing ? 'Edit habit' : 'New habit',
             style: Theme.of(context).textTheme.displayMedium,
           ),
           const SizedBox(height: 16),
@@ -83,20 +99,35 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
               _frequencyChip(context, HabitFrequency.custom, 'Custom'),
             ],
           ),
+          const SizedBox(height: 16),
+          Text(
+            'Difficulty',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _difficultyChip(context, HabitDifficulty.easy, 'Easy'),
+              _difficultyChip(context, HabitDifficulty.medium, 'Medium'),
+              _difficultyChip(context, HabitDifficulty.hard, 'Hard'),
+            ],
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.textPrimary,
-                foregroundColor: AppColors.primaryBackground,
+                backgroundColor: p.textPrimary,
+                foregroundColor: p.primaryBackground,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text('Create habit'),
+              child: Text(_isEditing ? 'Save changes' : 'Create habit'),
             ),
           ),
         ],
@@ -110,6 +141,7 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
     required TextEditingController controller,
     required String hint,
   }) {
+    final p = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -125,7 +157,7 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
             hintText: hint,
             hintStyle: Theme.of(context).textTheme.bodySmall,
             filled: true,
-            fillColor: AppColors.surfaceSoft,
+            fillColor: p.surfaceSoft,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -139,23 +171,48 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
   Widget _frequencyChip(
       BuildContext context, HabitFrequency value, String label) {
     final isActive = _frequency == value;
-    return GestureDetector(
+    return _chip(
+      context,
+      isActive: isActive,
+      label: label,
       onTap: () => setState(() => _frequency = value),
+    );
+  }
+
+  Widget _difficultyChip(
+      BuildContext context, HabitDifficulty value, String label) {
+    final isActive = _difficulty == value;
+    return _chip(
+      context,
+      isActive: isActive,
+      label: label,
+      onTap: () => setState(() => _difficulty = value),
+    );
+  }
+
+  Widget _chip(
+    BuildContext context, {
+    required bool isActive,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final p = context.palette;
+    return GestureDetector(
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.surface : AppColors.surfaceSoft,
+          color: isActive ? p.surface : p.surfaceSoft,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isActive ? AppColors.accentSteel : AppColors.surfaceSoft,
+            color: isActive ? p.accentSteel : p.surfaceSoft,
           ),
         ),
         child: Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color:
-                    isActive ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isActive ? p.textPrimary : p.textSecondary,
               ),
         ),
       ),
@@ -169,15 +226,19 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
     }
 
     final now = DateTime.now().toUtc();
+    final initial = widget.initial;
     final habit = HabitEntity(
-      id: IdGenerator.habitId(),
+      id: initial?.id ?? IdGenerator.habitId(),
       title: _titleController.text.trim(),
       category: _categoryController.text.trim(),
       frequency: _frequency,
-      currentStreak: 0,
-      completedToday: false,
-      createdAt: now,
+      difficulty: _difficulty,
+      currentStreak: initial?.currentStreak ?? 0,
+      completedToday: initial?.completedToday ?? false,
+      createdAt: initial?.createdAt ?? now,
       updatedAt: now,
+      deletedAt: initial?.deletedAt,
+      lastCompletedAt: initial?.lastCompletedAt,
     );
 
     widget.onSubmit(habit);

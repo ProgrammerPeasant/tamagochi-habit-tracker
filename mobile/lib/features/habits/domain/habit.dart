@@ -3,6 +3,7 @@ class HabitEntity {
   final String title;
   final String category;
   final HabitFrequency frequency;
+  final HabitDifficulty difficulty;
   final int currentStreak;
   final bool completedToday;
   final DateTime createdAt;
@@ -15,6 +16,7 @@ class HabitEntity {
     required this.title,
     required this.category,
     required this.frequency,
+    this.difficulty = HabitDifficulty.medium,
     required this.currentStreak,
     required this.completedToday,
     required this.createdAt,
@@ -27,6 +29,7 @@ class HabitEntity {
     String? title,
     String? category,
     HabitFrequency? frequency,
+    HabitDifficulty? difficulty,
     int? currentStreak,
     bool? completedToday,
     DateTime? createdAt,
@@ -39,6 +42,7 @@ class HabitEntity {
       title: title ?? this.title,
       category: category ?? this.category,
       frequency: frequency ?? this.frequency,
+      difficulty: difficulty ?? this.difficulty,
       currentStreak: currentStreak ?? this.currentStreak,
       completedToday: completedToday ?? this.completedToday,
       createdAt: createdAt ?? this.createdAt,
@@ -50,3 +54,5 @@ class HabitEntity {
 }
 
 enum HabitFrequency { daily, weekly, custom }
+
+enum HabitDifficulty { easy, medium, hard }

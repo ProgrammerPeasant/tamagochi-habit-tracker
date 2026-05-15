@@ -1,8 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/sync/sync_controller.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../habits/presentation/habits_controller.dart';
 import '../../notifications/presentation/notifications_controller.dart';
 import '../../stats/presentation/stats_controller.dart';
@@ -17,6 +18,7 @@ class ProfileScreen extends ConsumerWidget {
     final syncState = ref.watch(syncControllerProvider);
     final habits = ref.watch(habitsProvider);
     final notifications = ref.watch(notificationsProvider);
+    final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -42,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
                     width: 54,
                     height: 54,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceSoft,
+                      color: context.palette.surfaceSoft,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(Icons.person_outline, size: 28),
@@ -52,13 +54,25 @@ class ProfileScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Studio Owner',
-                            style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          authState.email ?? 'Studio Owner',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         const SizedBox(height: 4),
-                        Text('Local-first profile',
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          authState.userId == null
+                              ? 'Local-first profile'
+                              : 'Signed in',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    onPressed: () =>
+                        ref.read(authControllerProvider.notifier).logout(),
+                    icon: const Icon(Icons.logout),
+                    tooltip: 'Sign out',
                   ),
                 ],
               ),
@@ -122,7 +136,7 @@ class ProfileScreen extends ConsumerWidget {
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
-                          ?.copyWith(color: AppColors.textMuted),
+                          ?.copyWith(color: context.palette.textMuted),
                     ),
                   ],
                 ],
@@ -213,7 +227,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(18),
       ),
       child: child,
@@ -226,7 +240,7 @@ class ProfileScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceSoft,
+          color: context.palette.surfaceSoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

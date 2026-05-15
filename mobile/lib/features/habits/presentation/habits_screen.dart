@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
+import '../domain/habit.dart';
 import 'habits_controller.dart';
 import 'widgets/habit_card.dart';
 import 'widgets/habit_form_sheet.dart';
@@ -16,7 +17,7 @@ class HabitsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Habits'),
-        backgroundColor: AppColors.primaryBackground,
+        backgroundColor: context.palette.primaryBackground,
         elevation: 0,
       ),
       body: SafeArea(
@@ -45,9 +46,8 @@ class HabitsScreen extends ConsumerWidget {
                     final habit = habits[index];
                     return HabitCard(
                       habit: habit,
-                      onToggle: () => ref
-                          .read(habitsProvider.notifier)
-                          .toggleCompleted(habit.id),
+                      onToggle: () => _onToggle(context, ref, habit),
+                      onEdit: () => _openForm(context, ref, initial: habit),
                     );
                   },
                 ),
@@ -58,24 +58,89 @@ class HabitsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openForm(context, ref),
-        backgroundColor: AppColors.textPrimary,
-        foregroundColor: AppColors.primaryBackground,
+        backgroundColor: context.palette.textPrimary,
+        foregroundColor: context.palette.primaryBackground,
         label: const Text('New habit'),
         icon: const Icon(Icons.add),
       ),
     );
   }
 
-  void _openForm(BuildContext context, WidgetRef ref) {
+  Future<void> _onToggle(
+    BuildContext context,
+    WidgetRef ref,
+    HabitEntity habit,
+  ) async {
+    if (habit.completedToday) {
+      await ref.read(habitsProvider.notifier).toggleCompleted(habit.id);
+      return;
+    }
+    final notes = await _askForNotes(context);
+    if (!context.mounted) return;
+    await ref
+        .read(habitsProvider.notifier)
+        .toggleCompleted(habit.id, notes: notes);
+  }
+
+  Future<String?> _askForNotes(BuildContext context) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: dialogContext.palette.secondaryBackground,
+          title: const Text('Add a note'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'How did it go? (optional)',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: const Text('Skip'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext)
+                  .pop(controller.text.trim().isEmpty
+                      ? null
+                      : controller.text.trim()),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    return result;
+  }
+
+  void _openForm(
+    BuildContext context,
+    WidgetRef ref, {
+    HabitEntity? initial,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: context.palette.secondaryBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) => HabitFormSheet(
-        onSubmit: (habit) => ref.read(habitsProvider.notifier).addHabit(habit),
+        initial: initial,
+        onSubmit: (habit) {
+          final notifier = ref.read(habitsProvider.notifier);
+          if (initial == null) {
+            notifier.addHabit(habit);
+          } else {
+            notifier.updateHabit(habit);
+          }
+        },
       ),
     );
   }
@@ -91,7 +156,7 @@ class _SummaryRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: context.palette.surfaceSoft,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -123,7 +188,7 @@ class _SummaryPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(

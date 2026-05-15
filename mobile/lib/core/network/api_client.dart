@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../auth/auth_session.dart';
 import 'api_config.dart';
 
 class ApiClient {
@@ -112,10 +113,19 @@ class ApiClient {
   }
 
   Map<String, String> _headers(String userId) {
-    return {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
-      'X-User-Id': userId,
     };
+    final token = AuthSession.instance.token;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    final sessionUserId = AuthSession.instance.userId;
+    headers['X-User-Id'] =
+        (sessionUserId != null && sessionUserId.isNotEmpty)
+            ? sessionUserId
+            : userId;
+    return headers;
   }
 
   Map<String, dynamic> _decode(http.Response response) {

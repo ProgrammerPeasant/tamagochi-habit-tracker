@@ -10,20 +10,28 @@ import (
 )
 
 type createHabitRequest struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Category  string `json:"category"`
-	Frequency string `json:"frequency"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	Category   string `json:"category"`
+	Frequency  string `json:"frequency"`
+	Difficulty string `json:"difficulty"`
 }
 
 type updateHabitRequest struct {
-	Title     string `json:"title"`
-	Category  string `json:"category"`
-	Frequency string `json:"frequency"`
+	Title      string `json:"title"`
+	Category   string `json:"category"`
+	Frequency  string `json:"frequency"`
+	Difficulty string `json:"difficulty"`
 }
 
 type completeHabitRequest struct {
 	CompletedAt string `json:"completed_at"`
+	Notes       string `json:"notes"`
+}
+
+type authRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type syncRequest struct {
@@ -51,11 +59,16 @@ func (r createHabitRequest) toInput() (services.CreateHabitInput, error) {
 	if err != nil {
 		return services.CreateHabitInput{}, err
 	}
+	difficulty, err := parseDifficulty(r.Difficulty)
+	if err != nil {
+		return services.CreateHabitInput{}, err
+	}
 	return services.CreateHabitInput{
-		ID:        strings.TrimSpace(r.ID),
-		Title:     strings.TrimSpace(r.Title),
-		Category:  strings.TrimSpace(r.Category),
-		Frequency: frequency,
+		ID:         strings.TrimSpace(r.ID),
+		Title:      strings.TrimSpace(r.Title),
+		Category:   strings.TrimSpace(r.Category),
+		Frequency:  frequency,
+		Difficulty: difficulty,
 	}, nil
 }
 
@@ -70,10 +83,15 @@ func (r updateHabitRequest) toInput() (services.UpdateHabitInput, error) {
 	if err != nil {
 		return services.UpdateHabitInput{}, err
 	}
+	difficulty, err := parseDifficulty(r.Difficulty)
+	if err != nil {
+		return services.UpdateHabitInput{}, err
+	}
 	return services.UpdateHabitInput{
-		Title:     strings.TrimSpace(r.Title),
-		Category:  strings.TrimSpace(r.Category),
-		Frequency: frequency,
+		Title:      strings.TrimSpace(r.Title),
+		Category:   strings.TrimSpace(r.Category),
+		Frequency:  frequency,
+		Difficulty: difficulty,
 	}, nil
 }
 
@@ -107,5 +125,22 @@ func parseFrequency(value string) (domain.HabitFrequency, error) {
 		return domain.FrequencyCustom, nil
 	default:
 		return "", errors.New("invalid frequency")
+	}
+}
+
+func parseDifficulty(value string) (domain.HabitDifficulty, error) {
+	v := strings.ToLower(strings.TrimSpace(value))
+	if v == "" {
+		return domain.DifficultyMedium, nil
+	}
+	switch v {
+	case "easy":
+		return domain.DifficultyEasy, nil
+	case "medium":
+		return domain.DifficultyMedium, nil
+	case "hard":
+		return domain.DifficultyHard, nil
+	default:
+		return "", errors.New("invalid difficulty")
 	}
 }

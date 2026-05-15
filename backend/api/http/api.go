@@ -8,15 +8,17 @@ import (
 	"time"
 
 	"origamit-tamagochi-tracker/backend/domain"
+	"origamit-tamagochi-tracker/backend/internal/auth"
 	"origamit-tamagochi-tracker/backend/services"
 )
 
 type API struct {
 	services *services.App
+	signer   *auth.Signer
 }
 
-func New(services *services.App) *API {
-	return &API{services: services}
+func New(services *services.App, signer *auth.Signer) *API {
+	return &API{services: services, signer: signer}
 }
 
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,15 +32,20 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := userIDFromRequest(r)
+	path := strings.TrimPrefix(r.URL.Path, "/v1/")
+	path = strings.Trim(path, "/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 2 && parts[0] == "auth" {
+		a.handleAuth(w, r, parts[1])
+		return
+	}
+
+	userID, err := a.userIDFromRequest(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-
-	path := strings.TrimPrefix(r.URL.Path, "/v1/")
-	path = strings.Trim(path, "/")
-	parts := strings.Split(path, "/")
 
 	switch {
 	case len(parts) == 1 && parts[0] == "habits":
@@ -55,6 +62,56 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.handleStreaks(w, r, userID)
 	case len(parts) == 1 && parts[0] == "sync":
 		a.handleSync(w, r, userID)
+	default:
+		writeError(w, http.StatusNotFound, "route not found")
+	}
+}
+
+func (a *API) handleAuth(w http.ResponseWriter, r *http.Request, action string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req authRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	switch action {
+	case "register":
+		user, err := a.services.Auth.Register(r.Context(), req.Email, req.Password)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		token, err := a.signer.Sign(user.ID, user.Email)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"token":   token,
+			"user_id": user.ID,
+			"email":   user.Email,
+		})
+	case "login":
+		user, err := a.services.Auth.Authenticate(r.Context(), req.Email, req.Password)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+		token, err := a.signer.Sign(user.ID, user.Email)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"token":   token,
+			"user_id": user.ID,
+			"email":   user.Email,
+		})
 	default:
 		writeError(w, http.StatusNotFound, "route not found")
 	}
@@ -148,7 +205,7 @@ func (a *API) handleHabitComplete(w http.ResponseWriter, r *http.Request, userID
 		completedAt = parsed
 	}
 
-	result, err := a.services.Habits.CompleteHabit(r.Context(), userID, habitID, completedAt)
+	result, err := a.services.Habits.CompleteHabit(r.Context(), userID, habitID, completedAt, strings.TrimSpace(req.Notes))
 	if err != nil {
 		writeError(w, http.StatusNotFound, err.Error())
 		return
@@ -270,12 +327,30 @@ func (a *API) handleSync(w http.ResponseWriter, r *http.Request, userID string) 
 	}
 }
 
-func userIDFromRequest(r *http.Request) (string, error) {
-	userID := strings.TrimSpace(r.Header.Get("X-User-Id"))
-	if userID == "" {
-		return "", errors.New("missing X-User-Id header")
+func (a *API) userIDFromRequest(r *http.Request) (string, error) {
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authHeader != "" && a.signer != nil {
+		const bearer = "Bearer "
+		if strings.HasPrefix(authHeader, bearer) {
+			token := strings.TrimSpace(strings.TrimPrefix(authHeader, bearer))
+			claims, err := a.signer.Verify(token)
+			if err != nil {
+				return "", errors.New("invalid token")
+			}
+			if claims.Subject == "" {
+				return "", errors.New("invalid token subject")
+			}
+			return claims.Subject, nil
+		}
 	}
-	return userID, nil
+
+	// Fallback for legacy clients during migration. Will be removed once all
+	// clients ship with the JWT-based flow.
+	if userID := strings.TrimSpace(r.Header.Get("X-User-Id")); userID != "" {
+		return userID, nil
+	}
+
+	return "", errors.New("missing Authorization header")
 }
 
 func decodeJSON(r *http.Request, target any) error {
@@ -303,11 +378,16 @@ func mapHabits(items []domain.Habit) []map[string]any {
 }
 
 func mapHabit(habit domain.Habit) map[string]any {
+	difficulty := habit.Difficulty
+	if difficulty == "" {
+		difficulty = domain.DifficultyMedium
+	}
 	payload := map[string]any{
 		"id":         habit.ID,
 		"title":      habit.Title,
 		"category":   habit.Category,
 		"frequency":  habit.Frequency,
+		"difficulty": difficulty,
 		"created_at": formatTime(habit.CreatedAt),
 		"updated_at": formatTime(habit.UpdatedAt),
 	}
@@ -380,6 +460,6 @@ func parseCursor(value string) (time.Time, error) {
 
 func setCors(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-Id")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-Id, Authorization")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 }

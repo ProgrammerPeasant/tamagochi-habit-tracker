@@ -1,4 +1,4 @@
-﻿package domain
+package domain
 
 import "time"
 
@@ -8,5 +8,6 @@ type HabitLog struct {
 	HabitID   string
 	Date      time.Time
 	Completed bool
+	Notes     string
 	CreatedAt time.Time
 }

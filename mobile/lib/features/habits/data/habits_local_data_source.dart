@@ -71,7 +71,7 @@ class HabitsLocalDataSource {
     );
   }
 
-  Future<ToggleResult?> toggleCompletion(String id) async {
+  Future<ToggleResult?> toggleCompletion(String id, {String? notes}) async {
     if (kIsWeb) {
       final store = MemoryStore.instance;
       final current = store.habits[id];
@@ -97,12 +97,13 @@ class HabitsLocalDataSource {
             habitId: id,
             date: now,
             completed: true,
+            notes: notes,
             createdAt: now,
           ),
         );
       }
 
-      return ToggleResult(updatedHabit: next, logId: logId);
+      return ToggleResult(updatedHabit: next, logId: logId, notes: notes);
     }
 
     final db = await AppDatabase.instance.database;
@@ -140,6 +141,7 @@ class HabitsLocalDataSource {
           'habit_id': id,
           'date': DbTime.format(now),
           'completed': 1,
+          'notes': notes,
           'created_at': DbTime.format(now),
         },
         conflictAlgorithm: ConflictAlgorithm.ignore,
@@ -148,7 +150,7 @@ class HabitsLocalDataSource {
 
     final updated = await fetchHabit(id);
     if (updated == null) return null;
-    return ToggleResult(updatedHabit: updated, logId: logId);
+    return ToggleResult(updatedHabit: updated, logId: logId, notes: notes);
   }
 
   HabitEntity _mapRow(Map<String, Object?> row) {
@@ -159,6 +161,10 @@ class HabitsLocalDataSource {
       frequency: HabitFrequency.values.firstWhere(
         (value) => value.name == row['frequency'],
         orElse: () => HabitFrequency.daily,
+      ),
+      difficulty: HabitDifficulty.values.firstWhere(
+        (value) => value.name == row['difficulty'],
+        orElse: () => HabitDifficulty.medium,
       ),
       currentStreak: row['current_streak'] as int? ?? 0,
       completedToday: (row['completed_today'] as int? ?? 0) == 1,
@@ -177,6 +183,7 @@ class HabitsLocalDataSource {
       'title': habit.title,
       'category': habit.category,
       'frequency': habit.frequency.name,
+      'difficulty': habit.difficulty.name,
       'current_streak': habit.currentStreak,
       'completed_today': habit.completedToday ? 1 : 0,
       'last_completed_at': habit.lastCompletedAt != null
@@ -193,6 +200,11 @@ class HabitsLocalDataSource {
 class ToggleResult {
   final HabitEntity updatedHabit;
   final String? logId;
+  final String? notes;
 
-  ToggleResult({required this.updatedHabit, required this.logId});
+  ToggleResult({
+    required this.updatedHabit,
+    required this.logId,
+    this.notes,
+  });
 }

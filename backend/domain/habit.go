@@ -1,4 +1,4 @@
-﻿package domain
+package domain
 
 import "time"
 
@@ -10,13 +10,22 @@ const (
 	FrequencyCustom HabitFrequency = "custom"
 )
 
+type HabitDifficulty string
+
+const (
+	DifficultyEasy   HabitDifficulty = "easy"
+	DifficultyMedium HabitDifficulty = "medium"
+	DifficultyHard   HabitDifficulty = "hard"
+)
+
 type Habit struct {
-	ID        string
-	UserID    string
-	Title     string
-	Category  string
-	Frequency HabitFrequency
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID         string
+	UserID     string
+	Title      string
+	Category   string
+	Frequency  HabitFrequency
+	Difficulty HabitDifficulty
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time
 }
