@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -60,8 +61,9 @@ class HomeScreen extends ConsumerWidget {
                     ],
                   ),
                   child: GestureDetector(
-                    onLongPress: () =>
-                        _openDebugSheet(context, ref, habits, petState),
+                    onLongPress: kDebugMode
+                        ? () => _openDebugSheet(context, ref, habits, petState)
+                        : null,
                     child: _CompanionStage(state: effectiveState),
                   ),
                 ),
