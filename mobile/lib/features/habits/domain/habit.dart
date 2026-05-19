@@ -72,6 +72,22 @@ extension HabitCompletionRollover on HabitEntity {
         last.day == now.day;
     return sameDay ? this : copyWith(completedToday: false);
   }
+
+  /// Returns the habit with `currentStreak` zeroed if a full local day has
+  /// passed since `lastCompletedAt` (i.e. at least one day was skipped).
+  /// Only applies to daily habits; weekly/custom have no per-day rule yet.
+  HabitEntity withStaleStreakReset() {
+    if (currentStreak == 0) return this;
+    if (frequency != HabitFrequency.daily) return this;
+    final last = lastCompletedAt?.toLocal();
+    if (last == null) return copyWith(currentStreak: 0);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDay = DateTime(last.year, last.month, last.day);
+    final gapDays = today.difference(lastDay).inDays;
+    if (gapDays >= 2) return copyWith(currentStreak: 0);
+    return this;
+  }
 }
 
 extension HabitScheduling on HabitEntity {

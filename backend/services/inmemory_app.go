@@ -204,7 +204,9 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 
 	// Catch up on any missed days before applying the bonus from this
 	// completion, so penalties for skipped days don't get cancelled by the
-	// fresh activity.
+	// fresh activity. Reset stale streaks on the same anchor so the streak
+	// math below counts from 0 when this completion comes after a gap.
+	m.resetStaleStreaksLocked(userID, completedAt)
 	pet := m.recomputePetLocked(userID, completedAt)
 	m.petStates[userID] = pet
 
@@ -290,6 +292,8 @@ func (m *InMemoryApp) ListStreaks(ctx context.Context, userID string) ([]domain.
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.resetStaleStreaksLocked(userID, time.Now().UTC())
+
 	items := make([]domain.Streak, 0)
 	for _, streak := range m.streaks {
 		if streak.UserID == userID {
@@ -304,7 +308,9 @@ func (m *InMemoryApp) GetPetState(ctx context.Context, userID string) (domain.Pe
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	state := m.recomputePetLocked(userID, time.Now().UTC())
+	now := time.Now().UTC()
+	m.resetStaleStreaksLocked(userID, now)
+	state := m.recomputePetLocked(userID, now)
 	m.petStates[userID] = state
 	return state, nil
 }
@@ -709,6 +715,46 @@ func (m *InMemoryApp) recomputePetLocked(userID string, now time.Time) domain.Pe
 }
 
 const petRecomputeDayCap = 30
+
+// resetStaleStreaksLocked zeroes `current_streak` for any daily habit whose
+// last completion was 2+ full local days ago. A user who completed yesterday
+// keeps their streak (today might still happen); only a *missed* full day
+// breaks it. Caller must hold m.mu.
+//
+// Best streak is intentionally left alone — it's a high-water mark.
+// Weekly/custom habits are skipped (no schedule rule yet, see
+// HabitScheduling.isDueOn on the client).
+func (m *InMemoryApp) resetStaleStreaksLocked(userID string, now time.Time) {
+	today := startOfDayUTC(now)
+	for key, streak := range m.streaks {
+		if streak.UserID != userID {
+			continue
+		}
+		if streak.CurrentStreak == 0 || streak.LastCompleted == nil {
+			continue
+		}
+		habit, ok := m.habits[streak.HabitID]
+		if !ok || habit.DeletedAt != nil {
+			continue
+		}
+		if habit.Frequency != domain.FrequencyDaily {
+			continue
+		}
+		last := startOfDayUTC(*streak.LastCompleted)
+		gap := int(today.Sub(last).Hours() / 24)
+		if gap < 2 {
+			continue
+		}
+		streak.CurrentStreak = 0
+		streak.UpdatedAt = now.UTC()
+		m.streaks[key] = streak
+		m.appendChangeLocked(userID, "streak", "upsert", streak.HabitID, streak.UpdatedAt, map[string]any{
+			"current_streak": 0,
+			"best_streak":    streak.BestStreak,
+			"last_completed": streak.LastCompleted.Format(time.RFC3339),
+		})
+	}
+}
 
 // applyMissedDayPenalty applies the per-day degradation for `missedHabits`
 // daily habits that went uncompleted on a given day. The penalty scales
