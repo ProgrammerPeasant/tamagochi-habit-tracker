@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../habits/domain/habit.dart';
 import '../../habits/presentation/habits_controller.dart';
+import '../../habits/presentation/widgets/habit_note_dialog.dart';
 import '../../pet/domain/pet_state.dart';
 import '../../pet/presentation/origami_companion.dart';
 import '../../pet/presentation/pet_controller.dart';
@@ -80,53 +81,63 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   color: context.palette.surfaceSoft,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  children: [
-                    for (final habit in pending.take(2))
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: context.palette.accentSteel,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                habit.title,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                            Text(
-                              habit.category,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                child: habits.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 10),
+                        child: Text(
+                          'Add a habit in the studio to begin folding.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      )
+                    : ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 168),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              for (final habit in _orderForToday(habits))
+                                _HabitTodayRow(
+                                  habit: habit,
+                                  onToggle: () =>
+                                      _toggleFromHome(context, ref, habit),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    if (pending.isEmpty)
-                      Text(
-                        'All folds are complete for today.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
-                ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  List<HabitEntity> _orderForToday(List<HabitEntity> habits) {
+    final pending = habits.where((h) => !h.completedToday).toList();
+    final done = habits.where((h) => h.completedToday).toList();
+    return [...pending, ...done];
+  }
+
+  Future<void> _toggleFromHome(
+    BuildContext context,
+    WidgetRef ref,
+    HabitEntity habit,
+  ) async {
+    if (habit.completedToday) {
+      await ref.read(habitsProvider.notifier).toggleCompleted(habit.id);
+      return;
+    }
+    final notes = await showHabitNoteDialog(context);
+    if (!context.mounted) return;
+    await ref
+        .read(habitsProvider.notifier)
+        .toggleCompleted(habit.id, notes: notes);
   }
 
   void _openDebugSheet(
@@ -235,6 +246,48 @@ class _StatPill extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HabitTodayRow extends StatelessWidget {
+  final HabitEntity habit;
+  final VoidCallback onToggle;
+
+  const _HabitTodayRow({required this.habit, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final done = habit.completedToday;
+    final titleStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: done ? palette.textMuted : palette.textPrimary,
+          decoration: done ? TextDecoration.lineThrough : TextDecoration.none,
+        );
+
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              done ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 22,
+              color: done ? palette.accentGold : palette.accentSteel,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(habit.title, style: titleStyle),
+            ),
+            Text(
+              habit.category,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
