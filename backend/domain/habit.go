@@ -25,6 +25,9 @@ type Habit struct {
 	Category   string
 	Frequency  HabitFrequency
 	Difficulty HabitDifficulty
+	// CustomDays lists ISO weekdays (1=Mon … 7=Sun) on which the habit is
+	// scheduled. Only meaningful when Frequency == FrequencyCustom.
+	CustomDays []int
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  *time.Time

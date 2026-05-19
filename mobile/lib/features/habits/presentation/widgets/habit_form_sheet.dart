@@ -25,6 +25,7 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
   late final TextEditingController _categoryController;
   late HabitFrequency _frequency;
   late HabitDifficulty _difficulty;
+  late Set<int> _customDays;
 
   bool get _isEditing => widget.initial != null;
 
@@ -36,6 +37,7 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
     _categoryController = TextEditingController(text: initial?.category ?? '');
     _frequency = initial?.frequency ?? HabitFrequency.daily;
     _difficulty = initial?.difficulty ?? HabitDifficulty.medium;
+    _customDays = {...?initial?.customDays};
   }
 
   @override
@@ -101,6 +103,22 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
               _frequencyChip(context, HabitFrequency.custom, 'Custom'),
             ],
           ),
+          if (_frequency == HabitFrequency.custom) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Days of week',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var d = 1; d <= 7; d++)
+                  _dayChip(context, d, _shortDayLabel(d)),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Text(
             'Difficulty',
@@ -235,6 +253,27 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
     );
   }
 
+  Widget _dayChip(BuildContext context, int weekday, String label) {
+    final isActive = _customDays.contains(weekday);
+    return _chip(
+      context,
+      isActive: isActive,
+      label: label,
+      onTap: () => setState(() {
+        if (isActive) {
+          _customDays.remove(weekday);
+        } else {
+          _customDays.add(weekday);
+        }
+      }),
+    );
+  }
+
+  String _shortDayLabel(int weekday) {
+    const labels = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return labels[weekday];
+  }
+
   Widget _chip(
     BuildContext context, {
     required bool isActive,
@@ -278,6 +317,9 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
       category: _categoryController.text.trim(),
       frequency: _frequency,
       difficulty: _difficulty,
+      customDays: _frequency == HabitFrequency.custom && _customDays.isNotEmpty
+          ? {..._customDays}
+          : null,
       currentStreak: initial?.currentStreak ?? 0,
       completedToday: initial?.completedToday ?? false,
       createdAt: initial?.createdAt ?? now,

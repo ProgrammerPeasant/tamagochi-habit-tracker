@@ -52,6 +52,7 @@ type CreateHabitInput struct {
 	Category   string
 	Frequency  domain.HabitFrequency
 	Difficulty domain.HabitDifficulty
+	CustomDays []int
 }
 
 type UpdateHabitInput struct {
@@ -59,6 +60,7 @@ type UpdateHabitInput struct {
 	Category   string
 	Frequency  domain.HabitFrequency
 	Difficulty domain.HabitDifficulty
+	CustomDays []int
 }
 
 type DeleteResult struct {
