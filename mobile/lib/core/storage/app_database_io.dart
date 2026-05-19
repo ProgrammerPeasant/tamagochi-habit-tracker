@@ -1,5 +1,8 @@
-﻿import 'package:path/path.dart' as p;
+﻿import 'dart:io' show Platform;
+
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart' as sqf;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class AppDatabase {
@@ -14,9 +17,23 @@ class AppDatabase {
   }
 
   Future<Database> _open() async {
-    sqfliteFfiInit();
     final directory = await getApplicationDocumentsDirectory();
     final path = p.join(directory.path, 'origamit.db');
+
+    // Android / iOS have a native sqflite implementation in the platform
+    // channel. The FFI variant tries to dlopen libsqlite3.so which isn't
+    // shipped in our APK, hence the crash on mobile. Desktop (Win/macOS/
+    // Linux) still uses FFI since there's no platform channel there.
+    if (Platform.isAndroid || Platform.isIOS) {
+      return sqf.openDatabase(
+        path,
+        version: 4,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      );
+    }
+
+    sqfliteFfiInit();
     return databaseFactoryFfi.openDatabase(
       path,
       options: OpenDatabaseOptions(
