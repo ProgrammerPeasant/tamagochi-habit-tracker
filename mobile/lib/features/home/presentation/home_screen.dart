@@ -15,7 +15,9 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final habits = ref.watch(habitsProvider);
-    final pending = habits.where((habit) => !habit.completedToday).toList();
+    final today = DateTime.now();
+    final todayList = _todayList(habits, today);
+    final pending = todayList.where((habit) => !habit.completedToday).toList();
     final petState = ref.watch(petStateProvider);
     final debugState = ref.watch(petDebugProvider);
     final effectiveState = applyDebugOverrides(petState, debugState);
@@ -100,7 +102,7 @@ class HomeScreen extends ConsumerWidget {
                         child: SingleChildScrollView(
                           child: Column(
                             children: [
-                              for (final habit in _orderForToday(habits))
+                              for (final habit in _orderForToday(todayList))
                                 _HabitTodayRow(
                                   habit: habit,
                                   onToggle: () =>
@@ -116,6 +118,16 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Habits to show in the "Today" section: those due on [day], plus any
+  /// already completed today (even if their frequency would not normally
+  /// schedule them — completion is a deliberate user action and should stay
+  /// visible).
+  List<HabitEntity> _todayList(List<HabitEntity> habits, DateTime day) {
+    return habits
+        .where((h) => h.isDueOn(day) || h.completedToday)
+        .toList();
   }
 
   List<HabitEntity> _orderForToday(List<HabitEntity> habits) {
