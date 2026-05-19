@@ -56,3 +56,20 @@ class HabitEntity {
 enum HabitFrequency { daily, weekly, custom }
 
 enum HabitDifficulty { easy, medium, hard }
+
+extension HabitScheduling on HabitEntity {
+  /// Whether the habit is scheduled for the given calendar day.
+  ///
+  /// - `daily`: always.
+  /// - `weekly`: same weekday as the habit's creation date.
+  /// - `custom`: no rule in the current schema → treated as always due.
+  bool isDueOn(DateTime day) {
+    switch (frequency) {
+      case HabitFrequency.daily:
+      case HabitFrequency.custom:
+        return true;
+      case HabitFrequency.weekly:
+        return day.weekday == createdAt.toLocal().weekday;
+    }
+  }
+}

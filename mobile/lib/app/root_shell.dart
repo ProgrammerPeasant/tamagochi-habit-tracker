@@ -5,6 +5,7 @@ import '../core/sync/sync_controller.dart';
 import '../features/habits/presentation/habits_controller.dart';
 import '../features/habits/presentation/habits_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/pet/presentation/pet_controller.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -64,6 +65,7 @@ class _RootShellState extends ConsumerState<RootShell>
     _pausedAt = null;
 
     ref.invalidate(habitsProvider);
+    ref.invalidate(petStateProvider);
     ref.read(syncControllerProvider.notifier).sync();
 
     if (pausedAt != null) {

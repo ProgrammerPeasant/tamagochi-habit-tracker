@@ -104,7 +104,7 @@ class HabitCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${habit.currentStreak} day',
+                  '${habit.currentStreak} ${habit.currentStreak == 1 ? 'day' : 'days'}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

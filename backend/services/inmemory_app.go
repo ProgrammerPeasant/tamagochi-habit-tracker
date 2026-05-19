@@ -202,6 +202,12 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 		return CompletionResult{}, errors.New("habit not found")
 	}
 
+	// Catch up on any missed days before applying the bonus from this
+	// completion, so penalties for skipped days don't get cancelled by the
+	// fresh activity.
+	pet := m.recomputePetLocked(userID, completedAt)
+	m.petStates[userID] = pet
+
 	log := domain.HabitLog{
 		ID:        newID("log"),
 		UserID:    userID,
@@ -242,7 +248,7 @@ func (m *InMemoryApp) CompleteHabit(ctx context.Context, userID, habitID string,
 	stats.UpdatedAt = time.Now().UTC()
 	m.stats[userID] = stats
 
-	pet := m.petStates[userID]
+	pet = m.petStates[userID]
 	pet.UserID = userID
 	pet = evolvePetState(pet, streak)
 	pet.UpdatedAt = time.Now().UTC()
@@ -298,12 +304,8 @@ func (m *InMemoryApp) GetPetState(ctx context.Context, userID string) (domain.Pe
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	state, ok := m.petStates[userID]
-	if !ok {
-		state = domain.PetState{UserID: userID, Level: 1}
-		m.petStates[userID] = state
-	}
-
+	state := m.recomputePetLocked(userID, time.Now().UTC())
+	m.petStates[userID] = state
 	return state, nil
 }
 
@@ -630,6 +632,106 @@ func computeCompletionRate(logs []domain.HabitLog, userID string) float64 {
 		return 0
 	}
 	return math.Round((float64(completed)/float64(total))*100) / 100
+}
+
+// recomputePetLocked advances the pet state from its last `UpdatedAt`
+// (or the oldest daily habit's CreatedAt for a fresh state) up to `now`
+// by applying a per-day penalty for every daily habit that wasn't
+// completed on each missed day. Caller must hold m.mu.
+//
+// The walk is capped at petRecomputeDayCap days so a user who returns
+// after months doesn't trigger an unbounded loop or annihilate the pet.
+func (m *InMemoryApp) recomputePetLocked(userID string, now time.Time) domain.PetState {
+	pet, ok := m.petStates[userID]
+	if !ok {
+		pet = domain.PetState{UserID: userID, Level: 1}
+	}
+	pet.UserID = userID
+	if pet.Level == 0 {
+		pet.Level = 1
+	}
+
+	daily := make([]domain.Habit, 0)
+	for _, h := range m.habits {
+		if h.UserID != userID || h.DeletedAt != nil {
+			continue
+		}
+		if h.Frequency == domain.FrequencyDaily {
+			daily = append(daily, h)
+		}
+	}
+	if len(daily) == 0 {
+		pet.UpdatedAt = now.UTC()
+		return pet
+	}
+
+	anchor := pet.UpdatedAt
+	if anchor.IsZero() {
+		for _, h := range daily {
+			if anchor.IsZero() || h.CreatedAt.Before(anchor) {
+				anchor = h.CreatedAt
+			}
+		}
+	}
+
+	cursor := startOfDayUTC(anchor).Add(24 * time.Hour)
+	today := startOfDayUTC(now)
+
+	iterations := 0
+	for cursor.Before(today) && iterations < petRecomputeDayCap {
+		cursorEnd := cursor.Add(24 * time.Hour)
+		missed := 0
+		for _, h := range daily {
+			if h.CreatedAt.After(cursorEnd) {
+				continue
+			}
+			done := false
+			for _, log := range m.habitLogs {
+				if !log.Completed || log.HabitID != h.ID {
+					continue
+				}
+				if !log.Date.Before(cursor) && log.Date.Before(cursorEnd) {
+					done = true
+					break
+				}
+			}
+			if !done {
+				missed++
+			}
+		}
+		pet = applyMissedDayPenalty(pet, missed)
+		cursor = cursorEnd
+		iterations++
+	}
+
+	pet.UpdatedAt = now.UTC()
+	return pet
+}
+
+const petRecomputeDayCap = 30
+
+// applyMissedDayPenalty applies the per-day degradation for `missedHabits`
+// daily habits that went uncompleted on a given day. The penalty scales
+// linearly: skipping one habit nudges the pet a little; skipping every
+// habit nudges it a lot. Hits a hard regression of one level if damage
+// crosses 80.
+func applyMissedDayPenalty(state domain.PetState, missedHabits int) domain.PetState {
+	if missedHabits <= 0 {
+		return state
+	}
+	state.Energy = clamp(state.Energy-2*missedHabits, 0, 100)
+	state.Mood = clamp(state.Mood-3*missedHabits, 0, 100)
+	state.Damage = clamp(state.Damage+2*missedHabits, 0, 100)
+	state.StructureComplexity = clamp(state.StructureComplexity-1*missedHabits, 0, 200)
+	if state.Damage >= 80 && state.Level > 1 {
+		state.Level--
+	}
+	return state
+}
+
+func startOfDayUTC(t time.Time) time.Time {
+	t = t.UTC()
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func evolvePetState(current domain.PetState, streak domain.Streak) domain.PetState {
