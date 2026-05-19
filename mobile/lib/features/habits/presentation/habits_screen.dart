@@ -6,6 +6,7 @@ import '../domain/habit.dart';
 import 'habits_controller.dart';
 import 'widgets/habit_card.dart';
 import 'widgets/habit_form_sheet.dart';
+import 'widgets/habit_note_dialog.dart';
 
 class HabitsScreen extends ConsumerWidget {
   const HabitsScreen({super.key});
@@ -75,48 +76,11 @@ class HabitsScreen extends ConsumerWidget {
       await ref.read(habitsProvider.notifier).toggleCompleted(habit.id);
       return;
     }
-    final notes = await _askForNotes(context);
+    final notes = await showHabitNoteDialog(context);
     if (!context.mounted) return;
     await ref
         .read(habitsProvider.notifier)
         .toggleCompleted(habit.id, notes: notes);
-  }
-
-  Future<String?> _askForNotes(BuildContext context) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String?>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: dialogContext.palette.secondaryBackground,
-          title: const Text('Add a note'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            minLines: 1,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'How did it go? (optional)',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(null),
-              child: const Text('Skip'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext)
-                  .pop(controller.text.trim().isEmpty
-                      ? null
-                      : controller.text.trim()),
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    return result;
   }
 
   void _openForm(
