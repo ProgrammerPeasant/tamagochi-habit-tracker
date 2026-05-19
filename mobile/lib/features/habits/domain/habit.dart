@@ -4,6 +4,9 @@ class HabitEntity {
   final String category;
   final HabitFrequency frequency;
   final HabitDifficulty difficulty;
+  /// Selected ISO weekdays (1=Mon … 7=Sun) for `HabitFrequency.custom`.
+  /// Null/empty for daily and weekly habits.
+  final Set<int>? customDays;
   final int currentStreak;
   final bool completedToday;
   final DateTime createdAt;
@@ -17,6 +20,7 @@ class HabitEntity {
     required this.category,
     required this.frequency,
     this.difficulty = HabitDifficulty.medium,
+    this.customDays,
     required this.currentStreak,
     required this.completedToday,
     required this.createdAt,
@@ -30,6 +34,7 @@ class HabitEntity {
     String? category,
     HabitFrequency? frequency,
     HabitDifficulty? difficulty,
+    Set<int>? customDays,
     int? currentStreak,
     bool? completedToday,
     DateTime? createdAt,
@@ -43,6 +48,7 @@ class HabitEntity {
       category: category ?? this.category,
       frequency: frequency ?? this.frequency,
       difficulty: difficulty ?? this.difficulty,
+      customDays: customDays ?? this.customDays,
       currentStreak: currentStreak ?? this.currentStreak,
       completedToday: completedToday ?? this.completedToday,
       createdAt: createdAt ?? this.createdAt,
@@ -95,14 +101,19 @@ extension HabitScheduling on HabitEntity {
   ///
   /// - `daily`: always.
   /// - `weekly`: same weekday as the habit's creation date.
-  /// - `custom`: no rule in the current schema → treated as always due.
+  /// - `custom`: any weekday selected in `customDays` (ISO: 1=Mon … 7=Sun).
+  ///   An empty/null `customDays` falls back to "always due" so habits that
+  ///   predate the schema migration keep working.
   bool isDueOn(DateTime day) {
     switch (frequency) {
       case HabitFrequency.daily:
-      case HabitFrequency.custom:
         return true;
       case HabitFrequency.weekly:
         return day.weekday == createdAt.toLocal().weekday;
+      case HabitFrequency.custom:
+        final days = customDays;
+        if (days == null || days.isEmpty) return true;
+        return days.contains(day.weekday);
     }
   }
 }

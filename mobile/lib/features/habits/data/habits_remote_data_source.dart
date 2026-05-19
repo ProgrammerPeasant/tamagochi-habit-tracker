@@ -33,6 +33,8 @@ class HabitsRemoteDataSource {
         'category': habit.category,
         'frequency': habit.frequency.name,
         'difficulty': habit.difficulty.name,
+        if (habit.customDays != null && habit.customDays!.isNotEmpty)
+          'custom_days': (habit.customDays!.toList()..sort()),
       },
     );
     return _mapHabit(json);
@@ -50,6 +52,9 @@ class HabitsRemoteDataSource {
         'category': habit.category,
         'frequency': habit.frequency.name,
         'difficulty': habit.difficulty.name,
+        'custom_days': habit.customDays != null && habit.customDays!.isNotEmpty
+            ? (habit.customDays!.toList()..sort())
+            : <int>[],
       },
     );
     return _mapHabit(json);
@@ -126,6 +131,7 @@ class HabitsRemoteDataSource {
         (value) => value.name == json['difficulty'],
         orElse: () => HabitDifficulty.medium,
       ),
+      customDays: _parseCustomDays(json['custom_days']),
       currentStreak: 0,
       completedToday: false,
       createdAt:
@@ -135,6 +141,16 @@ class HabitsRemoteDataSource {
       deletedAt: DbTime.parse(json['deleted_at'] as String?),
       lastCompletedAt: DbTime.parse(json['last_completed'] as String?),
     );
+  }
+
+  static Set<int>? _parseCustomDays(dynamic raw) {
+    if (raw is! List) return null;
+    final out = <int>{};
+    for (final item in raw) {
+      final n = item is int ? item : int.tryParse(item.toString());
+      if (n != null && n >= 1 && n <= 7) out.add(n);
+    }
+    return out.isEmpty ? null : out;
   }
 }
 

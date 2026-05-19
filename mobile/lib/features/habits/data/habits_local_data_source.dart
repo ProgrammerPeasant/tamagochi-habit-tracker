@@ -179,6 +179,7 @@ class HabitsLocalDataSource {
         (value) => value.name == row['difficulty'],
         orElse: () => HabitDifficulty.medium,
       ),
+      customDays: _decodeCustomDays(row['custom_days'] as String?),
       currentStreak: row['current_streak'] as int? ?? 0,
       completedToday: (row['completed_today'] as int? ?? 0) == 1,
       createdAt:
@@ -197,6 +198,7 @@ class HabitsLocalDataSource {
       'category': habit.category,
       'frequency': habit.frequency.name,
       'difficulty': habit.difficulty.name,
+      'custom_days': _encodeCustomDays(habit.customDays),
       'current_streak': habit.currentStreak,
       'completed_today': habit.completedToday ? 1 : 0,
       'last_completed_at': habit.lastCompletedAt != null
@@ -207,6 +209,25 @@ class HabitsLocalDataSource {
       'deleted_at':
           habit.deletedAt != null ? DbTime.format(habit.deletedAt!) : null,
     };
+  }
+
+  /// Stored as a comma-separated list of ISO weekday ints, e.g. "1,3,5".
+  /// Null when not set.
+  static String? _encodeCustomDays(Set<int>? days) {
+    if (days == null || days.isEmpty) return null;
+    final sorted = days.toList()..sort();
+    return sorted.join(',');
+  }
+
+  static Set<int>? _decodeCustomDays(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final parts = raw.split(',');
+    final out = <int>{};
+    for (final p in parts) {
+      final n = int.tryParse(p.trim());
+      if (n != null && n >= 1 && n <= 7) out.add(n);
+    }
+    return out.isEmpty ? null : out;
   }
 }
 

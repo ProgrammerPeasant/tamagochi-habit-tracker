@@ -391,6 +391,9 @@ func mapHabit(habit domain.Habit) map[string]any {
 		"created_at": formatTime(habit.CreatedAt),
 		"updated_at": formatTime(habit.UpdatedAt),
 	}
+	if len(habit.CustomDays) > 0 {
+		payload["custom_days"] = habit.CustomDays
+	}
 	if habit.DeletedAt != nil {
 		payload["deleted_at"] = formatTime(*habit.DeletedAt)
 	}

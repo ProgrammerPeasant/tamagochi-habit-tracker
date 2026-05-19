@@ -15,6 +15,7 @@ type createHabitRequest struct {
 	Category   string `json:"category"`
 	Frequency  string `json:"frequency"`
 	Difficulty string `json:"difficulty"`
+	CustomDays []int  `json:"custom_days"`
 }
 
 type updateHabitRequest struct {
@@ -22,6 +23,7 @@ type updateHabitRequest struct {
 	Category   string `json:"category"`
 	Frequency  string `json:"frequency"`
 	Difficulty string `json:"difficulty"`
+	CustomDays []int  `json:"custom_days"`
 }
 
 type completeHabitRequest struct {
@@ -69,6 +71,7 @@ func (r createHabitRequest) toInput() (services.CreateHabitInput, error) {
 		Category:   strings.TrimSpace(r.Category),
 		Frequency:  frequency,
 		Difficulty: difficulty,
+		CustomDays: sanitizeCustomDays(r.CustomDays),
 	}, nil
 }
 
@@ -92,7 +95,27 @@ func (r updateHabitRequest) toInput() (services.UpdateHabitInput, error) {
 		Category:   strings.TrimSpace(r.Category),
 		Frequency:  frequency,
 		Difficulty: difficulty,
+		CustomDays: sanitizeCustomDays(r.CustomDays),
 	}, nil
+}
+
+// sanitizeCustomDays drops out-of-range entries and de-duplicates while
+// preserving sort order. Returns a non-nil empty slice for empty input so the
+// caller can distinguish "no days picked yet" from "field absent".
+func sanitizeCustomDays(in []int) []int {
+	seen := make(map[int]struct{})
+	out := make([]int, 0, len(in))
+	for _, d := range in {
+		if d < 1 || d > 7 {
+			continue
+		}
+		if _, dup := seen[d]; dup {
+			continue
+		}
+		seen[d] = struct{}{}
+		out = append(out, d)
+	}
+	return out
 }
 
 func (c syncChange) toDomain(userID, deviceID string) domain.SyncChange {

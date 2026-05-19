@@ -112,16 +112,18 @@ func (m *InMemoryApp) CreateHabit(ctx context.Context, userID string, input Crea
 		Category:   input.Category,
 		Frequency:  input.Frequency,
 		Difficulty: difficulty,
+		CustomDays: append([]int(nil), input.CustomDays...),
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
 
 	m.habits[id] = habit
 	m.appendChangeLocked(userID, "habit", "upsert", id, now, map[string]any{
-		"title":      habit.Title,
-		"category":   habit.Category,
-		"frequency":  string(habit.Frequency),
-		"difficulty": string(habit.Difficulty),
+		"title":       habit.Title,
+		"category":    habit.Category,
+		"frequency":   string(habit.Frequency),
+		"difficulty":  string(habit.Difficulty),
+		"custom_days": habit.CustomDays,
 	})
 
 	return habit, nil
@@ -161,14 +163,16 @@ func (m *InMemoryApp) UpdateHabit(ctx context.Context, userID, habitID string, i
 	if input.Difficulty != "" {
 		habit.Difficulty = input.Difficulty
 	}
+	habit.CustomDays = append([]int(nil), input.CustomDays...)
 	habit.UpdatedAt = time.Now().UTC()
 
 	m.habits[habitID] = habit
 	m.appendChangeLocked(userID, "habit", "upsert", habitID, habit.UpdatedAt, map[string]any{
-		"title":      habit.Title,
-		"category":   habit.Category,
-		"frequency":  string(habit.Frequency),
-		"difficulty": string(habit.Difficulty),
+		"title":       habit.Title,
+		"category":    habit.Category,
+		"frequency":   string(habit.Frequency),
+		"difficulty":  string(habit.Difficulty),
+		"custom_days": habit.CustomDays,
 	})
 
 	return habit, nil
@@ -431,10 +435,45 @@ func (m *InMemoryApp) applyHabitChangeLocked(change domain.SyncChange) {
 	if habit.Difficulty == "" {
 		habit.Difficulty = domain.DifficultyMedium
 	}
+	if raw, ok := change.Payload["custom_days"]; ok {
+		habit.CustomDays = parseCustomDaysPayload(raw)
+	}
 	if habit.CreatedAt.IsZero() {
 		habit.CreatedAt = change.UpdatedAt
 	}
 	m.habits[change.EntityID] = habit
+}
+
+// parseCustomDaysPayload handles the wire format of the custom_days payload,
+// which JSON decoders deliver as []any (with float64 elements) or []int.
+func parseCustomDaysPayload(raw any) []int {
+	switch v := raw.(type) {
+	case []int:
+		out := make([]int, 0, len(v))
+		for _, d := range v {
+			if d >= 1 && d <= 7 {
+				out = append(out, d)
+			}
+		}
+		return out
+	case []any:
+		out := make([]int, 0, len(v))
+		for _, item := range v {
+			switch n := item.(type) {
+			case int:
+				if n >= 1 && n <= 7 {
+					out = append(out, n)
+				}
+			case float64:
+				d := int(n)
+				if d >= 1 && d <= 7 {
+					out = append(out, d)
+				}
+			}
+		}
+		return out
+	}
+	return nil
 }
 
 func (m *InMemoryApp) applyHabitLogChangeLocked(change domain.SyncChange) {
@@ -657,23 +696,23 @@ func (m *InMemoryApp) recomputePetLocked(userID string, now time.Time) domain.Pe
 		pet.Level = 1
 	}
 
-	daily := make([]domain.Habit, 0)
+	scheduled := make([]domain.Habit, 0)
 	for _, h := range m.habits {
 		if h.UserID != userID || h.DeletedAt != nil {
 			continue
 		}
-		if h.Frequency == domain.FrequencyDaily {
-			daily = append(daily, h)
+		if h.Frequency == domain.FrequencyDaily || h.Frequency == domain.FrequencyCustom {
+			scheduled = append(scheduled, h)
 		}
 	}
-	if len(daily) == 0 {
+	if len(scheduled) == 0 {
 		pet.UpdatedAt = now.UTC()
 		return pet
 	}
 
 	anchor := pet.UpdatedAt
 	if anchor.IsZero() {
-		for _, h := range daily {
+		for _, h := range scheduled {
 			if anchor.IsZero() || h.CreatedAt.Before(anchor) {
 				anchor = h.CreatedAt
 			}
@@ -687,8 +726,11 @@ func (m *InMemoryApp) recomputePetLocked(userID string, now time.Time) domain.Pe
 	for cursor.Before(today) && iterations < petRecomputeDayCap {
 		cursorEnd := cursor.Add(24 * time.Hour)
 		missed := 0
-		for _, h := range daily {
+		for _, h := range scheduled {
 			if h.CreatedAt.After(cursorEnd) {
+				continue
+			}
+			if !isHabitDueOn(h, cursor) {
 				continue
 			}
 			done := false
@@ -712,6 +754,40 @@ func (m *InMemoryApp) recomputePetLocked(userID string, now time.Time) domain.Pe
 
 	pet.UpdatedAt = now.UTC()
 	return pet
+}
+
+// isHabitDueOn mirrors the client's HabitScheduling.isDueOn:
+// - daily: always
+// - weekly: same weekday as CreatedAt
+// - custom: any weekday in CustomDays (empty/nil → always, for safety)
+func isHabitDueOn(h domain.Habit, day time.Time) bool {
+	switch h.Frequency {
+	case domain.FrequencyDaily:
+		return true
+	case domain.FrequencyWeekly:
+		return day.Weekday() == h.CreatedAt.Weekday()
+	case domain.FrequencyCustom:
+		if len(h.CustomDays) == 0 {
+			return true
+		}
+		w := isoWeekday(day)
+		for _, d := range h.CustomDays {
+			if d == w {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
+// isoWeekday converts Go's Sunday=0..Saturday=6 to ISO Monday=1..Sunday=7.
+func isoWeekday(t time.Time) int {
+	w := int(t.Weekday())
+	if w == 0 {
+		return 7
+	}
+	return w
 }
 
 const petRecomputeDayCap = 30

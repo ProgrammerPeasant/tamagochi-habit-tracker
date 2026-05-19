@@ -20,7 +20,7 @@ class AppDatabase {
     return databaseFactoryFfi.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 3,
+        version: 4,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       ),
@@ -35,6 +35,7 @@ class AppDatabase {
         category TEXT NOT NULL,
         frequency TEXT NOT NULL,
         difficulty TEXT NOT NULL DEFAULT 'medium',
+        custom_days TEXT,
         current_streak INTEGER NOT NULL,
         completed_today INTEGER NOT NULL,
         last_completed_at TEXT,
@@ -121,6 +122,11 @@ class AppDatabase {
       );
       await db.execute(
         "ALTER TABLE habit_logs ADD COLUMN notes TEXT",
+      );
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE habits ADD COLUMN custom_days TEXT',
       );
     }
   }
