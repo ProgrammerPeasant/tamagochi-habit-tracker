@@ -104,12 +104,23 @@ class SyncService {
             (value) => value.name == (change.payload['frequency'] ?? 'daily'),
             orElse: () => HabitFrequency.daily,
           );
+          final difficulty = HabitDifficulty.values.firstWhere(
+            (value) =>
+                value.name ==
+                ((change.payload['difficulty'] as String?)?.toLowerCase() ??
+                    existing?.difficulty.name ??
+                    'medium'),
+            orElse: () => HabitDifficulty.medium,
+          );
           store.habits[change.id] = HabitEntity(
             id: change.id,
             title: (change.payload['title'] ?? existing?.title ?? '') as String,
             category: (change.payload['category'] ?? existing?.category ?? '')
                 as String,
             frequency: frequency,
+            difficulty: difficulty,
+            customDays: _parseCustomDays(change.payload['custom_days']) ??
+                existing?.customDays,
             currentStreak: _asInt(
                 change.payload['current_streak'], existing?.currentStreak ?? 0),
             completedToday: _asInt(change.payload['completed_today'],
@@ -190,6 +201,8 @@ class SyncService {
         'title': payload['title'] ?? '',
         'category': payload['category'] ?? '',
         'frequency': payload['frequency'] ?? 'daily',
+        'difficulty': _normalizeDifficulty(payload['difficulty']),
+        'custom_days': _encodeCustomDaysFromPayload(payload['custom_days']),
         'current_streak': payload['current_streak'] ?? 0,
         'completed_today': payload['completed_today'] ?? 0,
         'last_completed_at': payload['last_completed_at'],
@@ -199,6 +212,29 @@ class SyncService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  String _normalizeDifficulty(Object? raw) {
+    if (raw is String) {
+      final v = raw.toLowerCase().trim();
+      if (v == 'easy' || v == 'medium' || v == 'hard') return v;
+    }
+    return 'medium';
+  }
+
+  /// Payload may carry custom_days as `List<int>` (from local enqueue) or
+  /// `List<dynamic>` of `int`/`num` (from JSON-decoded server change).
+  /// SQLite column is TEXT — encode as sorted comma-separated, or NULL.
+  String? _encodeCustomDaysFromPayload(Object? raw) {
+    if (raw is! List) return null;
+    final out = <int>{};
+    for (final item in raw) {
+      final n = item is int ? item : (item is num ? item.toInt() : null);
+      if (n != null && n >= 1 && n <= 7) out.add(n);
+    }
+    if (out.isEmpty) return null;
+    final sorted = out.toList()..sort();
+    return sorted.join(',');
   }
 
   Future<void> _applyHabitLog(Database db, SyncChange change) async {
@@ -282,6 +318,16 @@ class SyncService {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? fallback;
     return fallback;
+  }
+
+  Set<int>? _parseCustomDays(dynamic raw) {
+    if (raw is! List) return null;
+    final out = <int>{};
+    for (final item in raw) {
+      final n = item is int ? item : (item is num ? item.toInt() : null);
+      if (n != null && n >= 1 && n <= 7) out.add(n);
+    }
+    return out.isEmpty ? null : out;
   }
 
   double _asDouble(dynamic value, double fallback) {
