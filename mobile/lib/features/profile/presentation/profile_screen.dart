@@ -187,8 +187,10 @@ class ProfileScreen extends ConsumerWidget {
                                 orElse: () => habits.first,
                               )
                               .title;
+                      final dayLabel =
+                          top.currentStreak == 1 ? 'day' : 'days';
                       return Text(
-                        '$habitTitle · ${top.currentStreak} days',
+                        '$habitTitle · ${top.currentStreak} $dayLabel',
                         style: Theme.of(context).textTheme.bodyMedium,
                       );
                     },
