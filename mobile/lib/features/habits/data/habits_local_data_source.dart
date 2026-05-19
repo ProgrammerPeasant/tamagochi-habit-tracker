@@ -12,6 +12,7 @@ class HabitsLocalDataSource {
     if (kIsWeb) {
       final items = MemoryStore.instance.habits.values
           .where((habit) => habit.deletedAt == null)
+          .map((h) => h.withTodayRollover())
           .toList();
       items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
       return items;
@@ -22,18 +23,18 @@ class HabitsLocalDataSource {
       where: 'deleted_at IS NULL',
       orderBy: 'created_at ASC',
     );
-    return rows.map(_mapRow).toList();
+    return rows.map(_mapRow).map((h) => h.withTodayRollover()).toList();
   }
 
   Future<HabitEntity?> fetchHabit(String id) async {
     if (kIsWeb) {
-      return MemoryStore.instance.habits[id];
+      return MemoryStore.instance.habits[id]?.withTodayRollover();
     }
     final db = await AppDatabase.instance.database;
     final rows =
         await db.query('habits', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
-    return _mapRow(rows.first);
+    return _mapRow(rows.first).withTodayRollover();
   }
 
   Future<void> upsertHabit(HabitEntity habit) async {
@@ -74,8 +75,12 @@ class HabitsLocalDataSource {
   Future<ToggleResult?> toggleCompletion(String id, {String? notes}) async {
     if (kIsWeb) {
       final store = MemoryStore.instance;
-      final current = store.habits[id];
-      if (current == null) return null;
+      final raw = store.habits[id];
+      if (raw == null) return null;
+      // Apply today rollover before deriving direction — otherwise yesterday's
+      // stored `completedToday=true` would flip us into uncomplete on first
+      // tap of the new day.
+      final current = raw.withTodayRollover();
       final now = DateTime.now().toUtc();
       final nextCompleted = !current.completedToday;
       final next = current.copyWith(
@@ -112,9 +117,12 @@ class HabitsLocalDataSource {
     if (rows.isEmpty) {
       return null;
     }
-    final current = rows.first;
-    final completed = (current['completed_today'] as int?) == 1;
-    final streak = current['current_streak'] as int? ?? 0;
+    // Build through _mapRow + rollover so the same midnight reset that
+    // fetchHabits applies is honored here. Without this, the toggle would
+    // read yesterday's stored flag and run the wrong direction.
+    final current = _mapRow(rows.first).withTodayRollover();
+    final completed = current.completedToday;
+    final streak = current.currentStreak;
     final now = DateTime.now().toUtc();
     final nextCompleted = !completed;
 

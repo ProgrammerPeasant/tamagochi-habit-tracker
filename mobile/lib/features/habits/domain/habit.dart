@@ -57,6 +57,23 @@ enum HabitFrequency { daily, weekly, custom }
 
 enum HabitDifficulty { easy, medium, hard }
 
+extension HabitCompletionRollover on HabitEntity {
+  /// Returns the habit with `completedToday` cleared if the last completion
+  /// happened before the current local calendar day. Storage keeps the flag
+  /// as-is after a completion, so without this rollover yesterday's "done"
+  /// would still read as completed on the next morning's first load.
+  HabitEntity withTodayRollover() {
+    if (!completedToday) return this;
+    final last = lastCompletedAt?.toLocal();
+    if (last == null) return copyWith(completedToday: false);
+    final now = DateTime.now();
+    final sameDay = last.year == now.year &&
+        last.month == now.month &&
+        last.day == now.day;
+    return sameDay ? this : copyWith(completedToday: false);
+  }
+}
+
 extension HabitScheduling on HabitEntity {
   /// Whether the habit is scheduled for the given calendar day.
   ///
