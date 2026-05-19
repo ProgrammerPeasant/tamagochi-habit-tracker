@@ -105,6 +105,9 @@ class HabitsScreen extends ConsumerWidget {
             notifier.updateHabit(habit);
           }
         },
+        onDelete: initial == null
+            ? null
+            : () => ref.read(habitsProvider.notifier).deleteHabit(initial.id),
       ),
     );
   }

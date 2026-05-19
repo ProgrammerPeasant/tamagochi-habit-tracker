@@ -6,11 +6,13 @@ import '../../domain/habit.dart';
 
 class HabitFormSheet extends StatefulWidget {
   final void Function(HabitEntity habit) onSubmit;
+  final VoidCallback? onDelete;
   final HabitEntity? initial;
 
   const HabitFormSheet({
     super.key,
     required this.onSubmit,
+    this.onDelete,
     this.initial,
   });
 
@@ -130,9 +132,52 @@ class _HabitFormSheetState extends State<HabitFormSheet> {
               child: Text(_isEditing ? 'Save changes' : 'Create habit'),
             ),
           ),
+          if (_isEditing && widget.onDelete != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: _confirmDelete,
+                icon: const Icon(Icons.delete_outline, size: 20),
+                label: const Text('Delete habit'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete() async {
+    final errorColor = Theme.of(context).colorScheme.error;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: dialogContext.palette.secondaryBackground,
+        title: const Text('Delete habit?'),
+        content: Text(
+          'This removes "${widget.initial?.title ?? 'this habit'}" and its progress. The action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: errorColor),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    widget.onDelete?.call();
+    Navigator.of(context).pop();
   }
 
   Widget _buildField(
